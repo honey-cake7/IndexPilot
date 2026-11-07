@@ -15,3 +15,13 @@ The workload is the set of queries **and how frequently they run**. Improving a 
 Normalization also applies to IndexPilot's own database: store a query pattern once, then attach many timestamped observations. Store a candidate once per analysis, then link it to many evaluated sets. Foreign keys describe those relationships and prevent orphaned results. The [ER diagram](DATABASE_DESIGN.md) shows the intended design; migrations will make it real in later milestones.
 
 The first milestone creates the engineering contract, not the application. The next milestone must prove the database environment and deterministic sample data work before any performance feature can be credible.
+
+## M1: constraints, roles and reproducibility in real PostgreSQL
+
+The sample `order_items` table uses `(order_id, line_number)` as a composite primary key: line 1 can appear in many different orders but cannot appear twice in the same order. A foreign key ensures every referenced order and product exists. `orders.total` and `payments.amount` are generated from actual item values, so the sample has internally consistent money values rather than unrelated random numbers.
+
+The analyzer's default read-only setting is a convenience, not the security boundary: sessions can change it. Our integration test turns it off and still gets permission denied on DELETE and CREATE. PostgreSQL privileges provide that boundary. TEMP privilege is revoked too, rather than assuming “no public schema CREATE” covers all writes.
+
+The same seed and scale yield the same row values; changing the seed changes them. This lets two benchmark configurations start from comparable data. It does not promise identical plan costs or timing: ANALYZE samples statistics, physical layout changes and caches depend on the environment. Deterministic input is one part of a reproducible experiment.
+
+The HypoPG integration test creates an index in one read-only connection and proves another connection sees none. The first connection's plan can use it without any physical index being created. That is why the later evaluation engine must hold the same connection for the entire index-set experiment.

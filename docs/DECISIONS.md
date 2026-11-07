@@ -12,7 +12,7 @@ Use SQLAlchemy/Alembic only for metadata; use psycopg 3 for PostgreSQL catalogs,
 
 ## D003 — PostgreSQL 18 reference environment
 
-Target PostgreSQL 18 with pg_stat_statements and HypoPG. WSL package inspection found PostgreSQL 18 and HypoPG 1.4.2 available, but neither is installed yet. Exact container/build versions and dependency locks will be verified in M1. Supporting every PostgreSQL version initially would multiply extension/statistics compatibility paths; capability detection will report unsupported differences explicitly.
+Target PostgreSQL 18 with pg_stat_statements and HypoPG. M1 verified PostgreSQL 18.6 and HypoPG 1.4.3 in a digest-pinned official container; HypoPG is built from a fixed revision with checksum verification. Python dependencies are locked in uv.lock. Supporting every PostgreSQL version initially would multiply extension/statistics compatibility paths; capability detection will report unsupported differences explicitly.
 
 ## D004 — AST and catalog resolution, bounded SQL support
 

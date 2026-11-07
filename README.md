@@ -6,7 +6,7 @@ IndexPilot is being built to answer: **which combination of indexes helps this w
 
 ## Current status
 
-Milestone 0: repository inspection and technical design. No application, database provisioning, optimizer, API or dashboard is implemented yet. There are no benchmark results. See [progress](docs/PROGRESS.md) for verified work and environment constraints.
+Milestones 0–1: published technical design and a verified PostgreSQL development environment. Deterministic e-commerce data, separate metadata/demo/benchmark databases, least-privilege roles, pg_stat_statements and HypoPG are working. The recommendation engine, API and dashboard are not implemented yet. There are no performance benchmark results. See [progress](docs/PROGRESS.md).
 
 ## Architecture and planned stack
 
@@ -26,17 +26,23 @@ flowchart LR
 
 ## Requirements and setup
 
-The planned reference environment is Python 3.12, PostgreSQL 18 with pg_stat_statements and HypoPG, Docker Engine with Compose v2, and a supported Node.js LTS release. Exact application dependencies and container versions will be locked when introduced and tested.
+The tested environment uses Python 3.12.13, PostgreSQL 18.6, HypoPG 1.4.3, pg_stat_statements 1.12, Docker Engine 29.1.3 and Compose 2.40.3. Python dependencies are locked in `uv.lock`; the PostgreSQL image is pinned by digest and HypoPG by revision/checksum. Node.js is only needed when frontend development begins.
 
-For the documentation currently available:
+With Docker/Compose and [uv](https://docs.astral.sh/uv/) installed, run from the checkout:
 
 ```powershell
 git clone https://github.com/honey-cake7/IndexPilot.git
 cd IndexPilot
-git status
+uv sync --locked
+uv run python scripts/init_local.py
+docker compose up -d --build --wait
+uv run python scripts/generate_demo.py
+uv run python scripts/generate_demo.py --target bench
+uv run python scripts/verify_environment.py
+uv run pytest --integration -q
 ```
 
-Docker startup, configuration, backend/frontend execution and test commands will be added with their working implementations. Do not assume `docker compose up` or an application entrypoint exists yet. Database passwords will be supplied by environment or local secret files, never committed.
+For this Windows machine, Docker runs inside WSL: replace `docker compose` above with `wsl --exec docker compose`, from the same project directory, and keep a WSL terminal open. Detailed setup, data reset, configuration and troubleshooting are in [DEVELOPMENT.md](docs/DEVELOPMENT.md). There is no API/frontend entrypoint yet. Passwords are generated into ignored local files and never committed.
 
 ## Planned example workflow
 
@@ -47,6 +53,7 @@ Ordinary analysis will use EXPLAIN without ANALYZE. Hypothetical planner cost is
 ## Documentation
 
 - [Dependency-ordered roadmap and acceptance criteria](docs/ROADMAP.md)
+- [Executed development setup and test commands](docs/DEVELOPMENT.md)
 - [Verified progress and commit records](docs/PROGRESS.md)
 - [Architecture and security boundaries](docs/ARCHITECTURE.md)
 - [Metadata design and ER diagram](docs/DATABASE_DESIGN.md)
@@ -57,6 +64,6 @@ Ordinary analysis will use EXPLAIN without ANALYZE. Hypothetical planner cost is
 
 ## Limitations
 
-Everything beyond the documented inspection/design is planned. Initial SQL support will intentionally be narrower than PostgreSQL: simple SELECTs over inspected ordinary tables with supported built-in types and operators. Unsupported SQL will receive an explanation rather than a speculative recommendation. Small or low-selectivity tables may correctly retain sequential scans. Greedy selection has no general guarantee of the globally optimal index set.
+The current implementation provisions and verifies the local databases; it does not recommend indexes yet. Planned SQL support will intentionally be narrower than PostgreSQL: simple SELECTs over inspected ordinary tables with supported built-in types and operators. Unsupported SQL will receive an explanation rather than a speculative recommendation. Small or low-selectivity tables may correctly retain sequential scans. Greedy selection has no general guarantee of the globally optimal index set.
 
 The project relies on PostgreSQL, HypoPG and pglast rather than an LLM to determine index validity. Technical sources are linked in the relevant design documents. AI-assisted contributions must meet the same review, test and evidence standards as other contributions.

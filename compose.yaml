@@ -1,0 +1,49 @@
+name: indexpilot
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: infra/postgres/Dockerfile
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/admin_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - compute_query_id=on
+      - -c
+      - pg_stat_statements.track=all
+    ports:
+      - "127.0.0.1:${INDEXPILOT_DB_PORT:-55432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    secrets:
+      - admin_password
+      - meta_password
+      - demo_password
+      - analyzer_password
+      - bench_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d indexpilot_demo"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    shm_size: 256mb
+secrets:
+  admin_password:
+    file: .secrets/admin_password
+  meta_password:
+    file: .secrets/meta_password
+  demo_password:
+    file: .secrets/demo_password
+  analyzer_password:
+    file: .secrets/analyzer_password
+  bench_password:
+    file: .secrets/bench_password
+volumes:
+  postgres_data:
