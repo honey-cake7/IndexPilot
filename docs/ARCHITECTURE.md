@@ -1,0 +1,63 @@
+# Architecture
+
+Status: proposed at M0. No module below is implemented yet.
+
+## Boundaries and flow
+
+IndexPilot starts as one Python application with focused packages. FastAPI validates HTTP requests and delegates to services. SQL parsing, candidate generation, plan parsing and optimization are independent Python modules; they can be tested without a server.
+
+```mermaid
+flowchart TD
+    Manual[Manual SELECTs and frequencies] --> Workload[Workload service]
+    Stats[pg_stat_statements snapshots] --> Delta[Reset-aware interval deltas]
+    Delta --> Workload
+    Workload --> Safety[AST validation and catalog resolution]
+    Safety --> Plans[Read-only EXPLAIN JSON]
+    Catalogs[Catalogs and statistics] --> Candidates[Bounded candidate generator]
+    Safety --> Candidates
+    Plans --> Eval[Dedicated HypoPG session]
+    Candidates --> Eval
+    Eval --> Optimizer[Marginal-benefit set optimizer]
+    Optimizer --> Explain[Deterministic explanations]
+    Explain --> Meta[Metadata transactions]
+    Meta --> API[API, dashboard, history and reports]
+    API --> Approval[Explicit isolated benchmark confirmation]
+    Approval --> Bench[Disposable benchmark runner]
+    Bench --> Meta
+```
+
+Three databases have different jobs. `indexpilot_meta` stores application records and migrations. `indexpilot_demo` contains the sample workload; the analyzer role can inspect and plan but not modify its tables. `indexpilot_bench` is disposable and has a separate writer/owner role. A marker alone is insufficient isolation: verify configured server identity, database identity and role; reject identities shared with metadata or monitored targets even through another hostname.
+
+Connection records store a configured credential reference, not a password or password-bearing DSN. Local environment/local secrets supply values. Only administrator-configured targets are allowed initially, preventing the HTTP connection feature from becoming an arbitrary network connection proxy. Public deployment, multi-tenancy and user authentication are outside the initial local-only demo; bind locally and document that limitation.
+
+## Target safety
+
+Ordinary analysis uses EXPLAIN without ANALYZE, least-privilege roles, fixed trusted search_path, read-only transactions and bounded connection/lock/statement timeouts. There is no physical target DDL endpoint. HypoPG functions are called by internal code with quoted, generated DDL, on a dedicated held session; cleanup runs on both success and failure. Failed cleanup means close/discard the connection.
+
+SELECT syntax alone does not guarantee safety. Planner constant folding can invoke immutable functions; operators, casts, views, policies and extension types can invoke code indirectly. The first implementation must therefore validate an intentionally narrow AST subset, permit inspected ordinary tables and supported built-in types/operators, reject unapproved function calls/casts, modifying CTEs, SELECT INTO, locks and unresolved names, and refuse untrusted views/RLS policies. Read-only settings cannot prevent arbitrary external side effects of malicious database code. Support is limited to trusted, administrator-controlled databases, not hostile database servers.
+
+Uploaded SQL is input, never a script to execute. Reject unsupported statements individually and report line/statement context. Parameter placeholders require explicit representative values and types; do not interpolate them with string replacement. Query text and literal values may contain business data, so avoid logging them, bound uploads and document local metadata retention.
+
+## Engine contracts
+
+- Workload: query identity, representative SQL/bindings, positive frequency, interval provenance and warnings. Split frequency among representative parameter scenarios; do not count each scenario as the full query frequency.
+- Schema: server/database/relation identity, columns/types/statistics, valid existing index definitions and observation time.
+- Plan: recursive node tree and raw JSON; estimated root total cost, not sum of all node totals.
+- Candidate: canonical schema/table/key signature, quoted DDL, reasons, linked queries and estimated size or explicit unknown.
+- Evaluator: `evaluate(frozenset[candidate_id])` returns per-query plans, root costs, per-index bytes and warnings for the entire set in one session.
+- Optimizer: pure orchestration over the evaluator contract, settings and workload; returns trial trace, selected/rejected sets, objective and stop reason.
+- Benchmark: fixed allowlisted disposable target and saved recommendation IDs; no arbitrary submitted DDL; immutable measurement conditions and individual samples where percentiles are reported.
+
+Cache keys include target identity, schema/statistics snapshot, representative query/bindings, relevant planner settings and candidate-set signature. Do not reuse across changed schemas or statistics. Bound work by candidates, queries, combinations and timeouts; report partial search explicitly.
+
+## API boundaries (planned)
+
+Version routes under `/api/v1`. Health is separate. Connections expose sanitized capability data; workloads expose manual ingestion/snapshots; plans/schema/candidates/evaluations expose inspection; optimizations persist complete analyses; recommendations/history/reports retrieve saved evidence. Benchmarks expose explicit creation confirmation and a job status resource, with queued/running/completed/failed states.
+
+Use Pydantic request/response types, consistent `{error: {code, message, request_id}}` errors, bounded payloads and pagination. Database exceptions become safe domain errors; never return raw exceptions containing credentials. Bind to loopback by default, use a restrictive local frontend CORS origin, and do not enable credentialed wildcard CORS.
+
+For long benchmarks, use a bounded local worker rather than a distributed queue. Persist job transitions; mark interrupted running jobs failed on restart; prevent overlapping jobs from changing the same benchmark database. Target SQL analysis and benchmark execution have separate connections and permissions.
+
+## Sources
+
+PostgreSQL describes [machine-readable plans and relative planner costs](https://www.postgresql.org/docs/18/using-explain.html). HypoPG documents [session-private hypothetical indexes and the restriction to non-ANALYZE EXPLAIN](https://hypopg.readthedocs.io/en/rel1_stable/usage.html). These constraints determine the evaluator/session design; they do not establish real runtime gains. See the [roadmap](ROADMAP.md) for verification requirements.
