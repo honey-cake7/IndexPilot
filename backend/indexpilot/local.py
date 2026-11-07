@@ -1,10 +1,8 @@
 """Connections for the explicitly provisioned local demonstration environment."""
 
-import os
-from pathlib import Path
-
 import psycopg
-from dotenv import load_dotenv
+
+from indexpilot.config import Settings
 
 ROLES = {
     "meta": ("indexpilot_meta", "indexpilot_meta", "meta_password"),
@@ -17,26 +15,35 @@ ROLES = {
 class LocalConnectionError(RuntimeError):
     """A sanitized failure that cannot render psycopg's credential-bearing frames."""
 
+    def __init__(self, code="connection_failed"):
+        self.code = code
+        super().__init__(
+            "Local PostgreSQL connection failed; verify service, credentials and port."
+        )
 
-def connect_local(role: str, *, autocommit: bool = False) -> psycopg.Connection:
+
+def connect_local(
+    role: str, *, autocommit: bool = False, settings: Settings | None = None
+) -> psycopg.Connection:
     """Keep credentials out of DSNs, CLI arguments, logs and returned data."""
-    load_dotenv()
+    settings = settings or Settings()
     database, user, secret_file = ROLES[role]
-    secret_dir = Path(os.getenv("INDEXPILOT_SECRET_DIR", ".secrets"))
-    password = (secret_dir / secret_file).read_text(encoding="utf-8").strip()
+    try:
+        password = (settings.secret_dir / secret_file).read_text(encoding="utf-8").strip()
+    except OSError:
+        raise LocalConnectionError("credential_file_unavailable") from None
     try:
         return psycopg.connect(
-            host=os.getenv("INDEXPILOT_DB_HOST", "127.0.0.1"),
-            port=int(os.getenv("INDEXPILOT_DB_PORT", "55432")),
+            host=settings.db_host,
+            port=settings.db_port,
             dbname=database,
             user=user,
             password=password,
-            connect_timeout=5,
+            connect_timeout=settings.connect_timeout,
             application_name="indexpilot-local",
             options="-c statement_timeout=30000 -c lock_timeout=2000",
             autocommit=autocommit,
         )
-    except psycopg.Error:
-        raise LocalConnectionError(
-            "Local PostgreSQL connection failed; verify service, credentials and port."
-        ) from None
+    except psycopg.Error as error:
+        code = "authentication_failed" if error.sqlstate == "28P01" else "connection_failed"
+        raise LocalConnectionError(code) from None

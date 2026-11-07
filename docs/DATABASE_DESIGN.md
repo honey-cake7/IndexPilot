@@ -1,6 +1,6 @@
 # Metadata database design
 
-Status: proposed logical schema at M0. Alembic migrations will introduce tables as their features become usable. Demo business data never belongs in metadata.
+Status: logical schema proposed at M0; M2 implements `monitored_database` in migration `0001`. Other entities remain planned and will be introduced with their usable features. Demo business data never belongs in metadata.
 
 ```mermaid
 erDiagram

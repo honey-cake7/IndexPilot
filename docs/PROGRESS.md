@@ -36,6 +36,22 @@
 
 **Verification:** Ruff lint/format, Compose config and Bash syntax checks; default tests distinguish skipped integration tests; **15 tests passed with `uv run pytest --integration -q`**, including a second run on a separate newly initialized Docker volume. Checks cover versions/extensions, deterministic fingerprints, seed/scale changes, row counts/totals, guarded reset, metadata separation, denied writes/schema/temp creation, real EXPLAIN/statistics, HypoPG storage/session isolation/cleanup and credential-free connection diagnostics. An initial missing HypoPG view grant was fixed and retested. A WSL idle shutdown interrupted one run; later complete runs passed with WSL held active. No benchmark timings are claimed.
 
-**GitHub record:** subject `Set up PostgreSQL development environment`, branch `main`; the containing commit is discoverable with `git log --format="%H %s" -- compose.yaml`. Exact SHA/link and push verification are reported after the commit is created, and recorded in the next update.
+**GitHub record:** `Set up PostgreSQL development environment`, branch `main`, [`a40b8d689ed84485d92203f901018c987b976067`](https://github.com/honey-cake7/IndexPilot/commit/a40b8d689ed84485d92203f901018c987b976067). Push verified against remote main.
 
 **Status / next:** M1 verified; API, workload ingestion, SQL safety engine, candidate generator, optimizer, benchmarking UI and reports are not implemented. M2 adds typed backend configuration, capability reporting, initial metadata migration, structured logging and safe API errors.
+
+## M2 — Backend foundation and database connectivity
+
+**Built / purpose:** typed FastAPI health and configured-demo capability endpoints; bounded Pydantic settings; fresh read-only target connections; independent SQLAlchemy metadata engine; Alembic migration 0001; structured JSON request events, server-generated request IDs and sanitized errors. The first metadata table stores only credential references.
+
+**Concepts / flow:** API → validated settings → dedicated target session → catalog/capability probes → typed response. Metadata migrations use a different database and owner. Savepoints keep an inaccessible extension probe from invalidating all capability checks; timeouts bound database work.
+
+**Decisions:** no arbitrary-host connection endpoint; local-only deployment; no automatic migration at application startup; liveness independent of credentials/database; pg_stat_statements runtime probe avoids granting pg_read_all_settings. Unknown configuration is nullable. Authentication startup errors lacking SQLSTATE remain generic connection errors. SQLAlchemy URLs hide passwords; raw exceptions and validation inputs are not logged/returned.
+
+**Run:** `uv run alembic upgrade head`; `uv run uvicorn indexpilot.main:app --host 127.0.0.1 --port 8000`; open `/docs`, `/health/ready`, `/api/v1/connections/demo`. Full instructions in DEVELOPMENT.md.
+
+**Executed checks:** Ruff; **25 tests passed** with `uv run pytest --integration -q`; real API readiness/capability requests, missing HypoPG reporting on metadata, bad credentials/unreachable port, statement timeout, read-only DDL rejection, metadata constraints, sanitized responses/logs and configuration bounds. On a separate disposable metadata database ran Alembic upgrade/downgrade/upgrade and `alembic check` (no schema drift). No benchmarks or frontend tests exist yet.
+
+**GitHub:** subject `Add backend configuration and database capability checks`, branch main. Containing SHA is available from `git log --format="%H %s" -- backend/indexpilot/main.py`; exact publication verification follows in the conversation and next milestone update.
+
+**Status / next:** M0–M2 verified. Next is safe manual workload ingestion and reset-aware cumulative statement-statistics snapshots. Optimization remains unimplemented.

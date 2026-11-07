@@ -29,6 +29,7 @@ docker compose up -d --build --wait
 uv run python scripts/generate_demo.py
 uv run python scripts/generate_demo.py --target bench
 uv run python scripts/verify_environment.py
+uv run alembic upgrade head
 ```
 
 On this Windows setup use `wsl --exec docker compose up -d --build --wait` for the Docker command. WSL translates the current Windows working directory. All `uv` commands run in PowerShell. Do not share the Windows `.venv` with a Linux Python interpreter.
@@ -78,3 +79,19 @@ docker compose exec -T postgres pgbench --version
 The default pytest command intentionally skips database tests. Use `--integration` for actual PostgreSQL verification; it must fail rather than silently skip when the server is unavailable. The integration suite replaces the marked benchmark sample data and restores the default 10,000-order dataset afterward. It never resets the demo/metadata database. At M1, 15 tests passed, including the real database tests, against both the main environment and a separate newly initialized container volume. No throughput/latency benchmark has run.
 
 To stop without deleting data: `docker compose stop`. Use `docker compose start --wait` or `docker compose up -d --wait` to resume. Keep the secret files with the existing database volume: changing a file does not change the stored PostgreSQL role password. Initializer changes apply only to a new volume; preserve useful data and apply deliberate migrations/grants to existing environments.
+
+## Backend (M2)
+
+```powershell
+uv run alembic upgrade head
+uv run alembic check
+uv run uvicorn indexpilot.main:app --host 127.0.0.1 --port 8000
+```
+
+Open `http://127.0.0.1:8000/docs`. GET `/health/live` works without a database; GET `/health/ready` requires migrated metadata and the demo target. GET `/api/v1/connections/demo` and POST `/api/v1/connections/validate` with `{"target":"demo"}` report real capabilities and privileges. Arbitrary connection parameters are rejected. PostgreSQL setup happens outside the API. Requests get a generated X-Request-ID; errors use a consistent envelope without echoing input or raw driver exceptions.
+
+The target timeout defaults to 5 seconds, lock timeout to 1 second, and connection timeout to 5 seconds. Set `INDEXPILOT_STATEMENT_TIMEOUT_MS`, `INDEXPILOT_LOCK_TIMEOUT_MS` and `INDEXPILOT_CONNECT_TIMEOUT` within validated bounds. Data-generation connections retain a separate 30-second statement limit. Metadata uses SQLAlchemy with hidden SQL parameters; the target uses fresh psycopg connections and read-only transactions. Neither migration nor database connection happens on ordinary module import.
+
+Capability inspection probes pg_stat_statements directly rather than requiring settings-reader privileges. A null `configured` value means the current role cannot verify configuration; it is not a fabricated success. Startup connection failures are sanitized and may not reliably distinguish authentication from networking when libpq supplies no SQLSTATE.
+
+M2 executed 25 tests successfully, including actual API/DB checks and timeout enforcement. Initial metadata upgrade → downgrade → upgrade and Alembic schema-drift verification were run on a second disposable metadata database. The API is loopback-only by documented startup convention and has no multi-user authentication; do not expose it publicly.

@@ -1,6 +1,6 @@
 # Architecture
 
-Status: proposed at M0. No module below is implemented yet.
+Status: M0 design with M1 database provisioning and M2 configuration/connections/capability API/initial metadata migration implemented. Workload, analysis, optimization and benchmark modules below remain planned.
 
 ## Boundaries and flow
 
