@@ -1,6 +1,6 @@
 # Workload input and collection
 
-Implemented in M3. These endpoints parse, validate and persist SQL/statistics; they do not execute submitted queries or generate execution plans. Catalog resolution, type checking against PostgreSQL and plan analysis belong to M4. Every saved scenario is labeled `syntax_only`; a representative SQL string is not a claim that it can run successfully.
+Implemented in M3, with configured schema scope added in M4. Ingestion endpoints parse and persist SQL/statistics; they do not execute submitted queries or generate plans. Every ingested scenario stays labeled `syntax_only`. M4's separate [plan endpoints](PLAN_ANALYSIS.md) resolve catalogs and obtain EXPLAIN estimates; a representative string alone is not a claim of successful planning.
 
 ## Manual input
 
@@ -24,9 +24,9 @@ The request-body limit is 1 MiB, including multipart overhead. SQL files and ind
 
 The admission policy permits a conservative SELECT subset over unqualified/public-schema relations, explicit JOIN ON, equality/range/arithmetic operators, Boolean/null tests, ordering, grouping, basic built-in scalar casts and simple count/sum/avg/min/max aggregates. It rejects DDL/DML, multiple statements per query, CTEs, SELECT INTO, row locks, subqueries, set operations, function-based FROM items, window functions, custom qualified operators/types and arbitrary function calls.
 
-This is **syntactic admission**, not a database sandbox. A table name may resolve to a view, or an expression to a custom implementation. M3 never sends the submitted SQL to the target. M4 must resolve inspected ordinary relations/types/operators and reject unsafe semantics before EXPLAIN. Databases remain administrator-controlled local targets.
+This is **syntactic admission**, not a database sandbox. A table name may resolve to a view, or an expression to a custom implementation. Ingestion never sends the submitted SQL to the target. M4's explicit plan path resolves supported ordinary relations/types/operators and rejects unsafe semantics before EXPLAIN. Databases remain administrator-controlled local targets.
 
-Patterns use pglast structural fingerprints; original SQL and frequency are preserved in separate scenarios. Display normalization replaces literal AST nodes with placeholders. Structural grouping is not proof that every scenario has equal selectivity or identical plans.
+Patterns use pglast structural fingerprints combined with relation schema/name scope; original SQL and frequency are preserved separately. Display normalization replaces literal AST nodes with placeholders. Structural grouping is not proof of equal selectivity or identical plans. Public is the default schema; M4 allows explicitly configured additional schemas through `INDEXPILOT_ANALYSIS_SCHEMAS`.
 
 ## Representative parameters
 

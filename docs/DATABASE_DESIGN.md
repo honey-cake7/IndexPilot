@@ -1,6 +1,6 @@
 # Metadata database design
 
-Status: M2 implements `monitored_database` in migration `0001`. M3 migration `0002` adds `workload`, `query_pattern`, `query_scenario`, `workload_snapshot` and `query_statistic`. Other entities remain planned. Demo business data never belongs in metadata.
+Status: migrations 0001–0002 implement target/workload/scenario/statistics entities. M4 migration 0003 adds `plan_analysis`. Evaluation, recommendation and benchmark entities remain planned. Demo business data never belongs in metadata.
 
 ```mermaid
 erDiagram
@@ -8,6 +8,8 @@ erDiagram
     workload ||--o{ query_pattern : contains
     workload ||--o{ workload_snapshot : collects
     query_pattern ||--o{ query_scenario : parameterizes
+    monitored_database ||--o{ plan_analysis : inspected
+    query_scenario o|--o{ plan_analysis : optionally_planned
     workload_snapshot ||--o{ query_statistic : contains
     query_pattern ||--o{ query_statistic : measured
     workload ||--o{ analysis_run : analyzed
@@ -61,3 +63,9 @@ Workloads belong to a saved configured target. Pattern identity is unique within
 Each snapshot owns many statistic rows, with unique `(snapshot_id, pattern_id)` pairs. SQL text and raw cumulative values are retained at capture time. Calls, rows and execution times are typed constrained columns; ten named buffer counters use validated JSONB. Snapshot metadata supplies reset/start/eviction provenance. Deltas are calculated from saved raw snapshots rather than redundantly persisted. Foreign-key indexes support retrieval; no delete API or automatic historical deletion is provided.
 
 Migration 0002 was upgraded, downgraded to 0001 and upgraded again on a separate disposable metadata database. The main metadata database was upgraded without a destructive downgrade. Alembic schema comparison found no drift.
+
+## M4 implementation details
+
+`plan_analysis` references the configured target and optionally a saved scenario; ad hoc plans need no artificial workload row. It stores original SQL, frequency, source capture time/version, resolved query/catalog context, raw EXPLAIN JSON, selected settings and extracted root summary. Cost/frequency CHECK constraints reject invalid values; target/scenario/time indexes support retrieval. JSON represents immutable variable-shaped evidence, while identities and references remain relational. The later `execution_plan` evaluation relationship is still proposed; M4 does not pretend hypothetical evaluations exist yet.
+
+Migration 0003 upgrade → downgrade to 0002 → upgrade passed on the separate disposable metadata database, with no schema drift. Historical plan retrieval uses stored catalog context, not the target's latest mutable schema/statistics.

@@ -120,3 +120,29 @@ class QueryStatistic(Base):
     rows: Mapped[int] = mapped_column(BigInteger)
     buffers: Mapped[dict] = mapped_column(JSONB)
     stats_since: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class PlanAnalysis(Base):
+    __tablename__ = "plan_analysis"
+    __table_args__ = (
+        CheckConstraint("frequency > 0 AND frequency <= 1000000000", name="plan_frequency"),
+        CheckConstraint(
+            "total_cost IS NULL OR (total_cost >= 0 AND total_cost < 'Infinity'::float8)",
+            name="plan_cost",
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    database_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("monitored_database.id"), index=True)
+    scenario_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("query_scenario.id"), index=True
+    )
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    database_name: Mapped[str] = mapped_column(String(63))
+    server_version: Mapped[str] = mapped_column(String(120))
+    original_sql: Mapped[str] = mapped_column(Text)
+    frequency: Mapped[float] = mapped_column(Double)
+    analysis: Mapped[dict] = mapped_column(JSONB)
+    raw_explain: Mapped[list] = mapped_column(JSONB)
+    planner_settings: Mapped[dict] = mapped_column(JSONB)
+    root_node_type: Mapped[str] = mapped_column(String(80))
+    total_cost: Mapped[float | None] = mapped_column(Double)

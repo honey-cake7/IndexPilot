@@ -19,8 +19,13 @@ class Parameter(InputModel):
 
     @model_validator(mode="after")
     def bound_value(self):
-        if isinstance(self.value, str) and len(self.value) > 4096:
-            raise ValueError("Parameter value is too long")
+        if isinstance(self.value, str):
+            if len(self.value) > 4096 or "\x00" in self.value:
+                raise ValueError("Parameter value exceeds limits or contains NUL")
+            try:
+                self.value.encode("utf-8")
+            except UnicodeEncodeError:
+                raise ValueError("Parameter value must be valid UTF-8") from None
         return self
 
 

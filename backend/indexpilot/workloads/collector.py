@@ -28,7 +28,9 @@ def _metadata(connection):
     ).fetchone()
 
 
-def collect_snapshot(connection: psycopg.Connection, *, limit: int = 1000) -> SnapshotData:
+def collect_snapshot(
+    connection: psycopg.Connection, *, limit: int = 1000, allowed_schemas=("public",)
+) -> SnapshotData:
     if not 1 <= limit <= 1000:
         raise ValueError("Collection limit must be between 1 and 1000")
     try:
@@ -70,7 +72,7 @@ def collect_snapshot(connection: psycopg.Connection, *, limit: int = 1000) -> Sn
     entries, skipped = [], 0
     for record in records[:limit]:
         try:
-            validate_sql(record["query"] or "")
+            validate_sql(record["query"] or "", allowed_schemas=allowed_schemas)
         except DomainError:
             skipped += 1
             continue

@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M1 provisioning, M2 backend/connectivity, and M3 workload ingestion/collection are implemented. M3 supplies AST admission, typed representative parameters, normalized metadata records and pure reset-aware deltas. Catalog resolution, plans, optimization and benchmarks remain planned. SQL admission alone never authorizes execution.
+Status: M1 provisioning, M2 backend/connectivity, M3 ingestion/collection, and M4 catalog resolution/estimated plan analysis are implemented. Optimization, benchmarks and the dashboard remain planned. Ingestion alone never authorizes planning; the explicit plan path applies a separate catalog safety policy.
 
 ## Boundaries and flow
 
@@ -37,6 +37,8 @@ Ordinary analysis uses EXPLAIN without ANALYZE, least-privilege roles, fixed tru
 SELECT syntax alone does not guarantee safety. Planner constant folding can invoke immutable functions; operators, casts, views, policies and extension types can invoke code indirectly. The first implementation must therefore validate an intentionally narrow AST subset, permit inspected ordinary tables and supported built-in types/operators, reject unapproved function calls/casts, modifying CTEs, SELECT INTO, locks and unresolved names, and refuse untrusted views/RLS policies. Read-only settings cannot prevent arbitrary external side effects of malicious database code. Support is limited to trusted, administrator-controlled databases, not hostile database servers.
 
 Uploaded SQL is input, never a script to execute. Reject unsupported statements individually and report line/statement context. Parameter placeholders require explicit representative values and types; do not interpolate them with string replacement. Query text and literal values may contain business data, so avoid logging them, bound uploads and document local metadata retention.
+
+M4 implements this boundary with permanent heap-table/type checks, dependency guards, read privileges, ACCESS SHARE locks, schema-qualified relations and pg_catalog-qualified operators/casts/aggregates. It refuses RLS/views/inheritance/generated columns and unsupported index/type dependencies. Schema inspection is broader than planning admission. Catalog context and raw plans are frozen in metadata; no actual execution metrics are generated. See [PLAN_ANALYSIS.md](PLAN_ANALYSIS.md) for the precise supported subset and the trusted-server limitation.
 
 ## Engine contracts
 

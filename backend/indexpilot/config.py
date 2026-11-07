@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,3 +14,20 @@ class Settings(BaseSettings):
     statement_timeout_ms: int = Field(default=5000, ge=100, le=30000)
     lock_timeout_ms: int = Field(default=1000, ge=100, le=5000)
     frontend_origin: str = "http://localhost:5173"
+    analysis_schemas: tuple[str, ...] = ("public",)
+
+    @field_validator("analysis_schemas")
+    @classmethod
+    def validate_schemas(cls, values):
+        if not 1 <= len(values) <= 16 or len(set(values)) != len(values):
+            raise ValueError("Configure between 1 and 16 distinct analysis schemas")
+        for value in values:
+            if (
+                not value
+                or len(value.encode("utf-8")) > 63
+                or "\x00" in value
+                or value.startswith("pg_")
+                or value == "information_schema"
+            ):
+                raise ValueError("Only configured application schemas are supported")
+        return values

@@ -7,7 +7,7 @@ from indexpilot.workloads.models import Parameter
 
 
 def bind_parameters(
-    root: ast.SelectStmt, values: dict[int, Parameter]
+    root: ast.SelectStmt, values: dict[int, Parameter], *, allowed_schemas=("public",)
 ) -> tuple[str | None, list[int]]:
     positions = parameter_positions(root)
     if values.keys() - positions:
@@ -47,5 +47,5 @@ def bind_parameters(
         return value
 
     rendered = RawStream()(replace(clone))
-    validate_sql(rendered)
+    validate_sql(rendered, allowed_schemas=allowed_schemas)
     return rendered, []

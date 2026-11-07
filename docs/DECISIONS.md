@@ -49,3 +49,15 @@ Use pg_stat_statements 1.12, persisting raw counters and full server identity/re
 ## D012 — Explicit periodic collection and milestone review
 
 An explicit bounded CLI or repeated snapshot requests provide periodic collection; no hidden daemon or distributed queue is introduced. Users supply representative parameter values, and scenario frequencies are explicit weights. As requested, finish, test, document, commit and push each milestone, then wait for the user's instruction before starting the next.
+
+## D013 — Conservative catalog validation before planning
+
+M4 resolves table/column identity and privileges and rejects unsupported relation/type/index dependencies before EXPLAIN. Qualified internal SQL and a pg_catalog search_path prevent ordinary schema-name shadowing. Existing user-defined constraint/index functions are refused, not assumed safe because SELECT is read-only. Only a trusted local database is supported; this is not a hostile-server sandbox. User SQL is never executed with ANALYZE.
+
+## D014 — Schema-aware patterns and saved plan evidence
+
+A real check showed pglast fingerprints ignore schemas. M4 combines structural identity with explicit relation scope, preserving public qualification equivalence while separating same-named relations across schemas. Existing M3 public-only records remain valid. Migration 0003 stores resolved schema/statistics context alongside raw plans and settings; it does not rely on future catalog state to explain historical results. Costs retain explicit planner units, and raw estimated plans with execution metrics are rejected.
+
+## D015 — Statistics visibility and index semantics
+
+Default inspection omits histogram/common-value text; opt-in values are formatted only for supported built-in column types with access. Index metadata retains expressions/predicates, key versus INCLUDE columns, opclasses, collations and sort/null flags for later accurate deduplication. Approximate uniform selectivity and cumulative usage remain labeled; neither is sufficient justification for an index recommendation or removal.

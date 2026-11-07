@@ -9,13 +9,13 @@ from indexpilot.config import Settings
 from indexpilot.db.connections import require_demo_identity, target_connection
 from indexpilot.errors import DomainError
 from indexpilot.metadata.models import (
-    MonitoredDatabase,
     QueryPattern,
     QueryScenario,
     QueryStatistic,
     Workload,
     WorkloadSnapshot,
 )
+from indexpilot.metadata.targets import ensure_demo_target
 from indexpilot.workloads.collector import collect_snapshot
 from indexpilot.workloads.deltas import snapshot_delta
 from indexpilot.workloads.manual import prepare_query
@@ -41,28 +41,6 @@ def _require(session: Session, model, identifier):
     return row
 
 
-def _target(session: Session, settings: Settings) -> uuid.UUID:
-    values = dict(
-        target_key="demo",
-        host=settings.db_host,
-        port=settings.db_port,
-        database_name="indexpilot_demo",
-        role_name="indexpilot_analyzer",
-        credential_reference="analyzer_password",
-    )
-    session.execute(
-        insert(MonitoredDatabase)
-        .values(id=uuid.uuid4(), **values)
-        .on_conflict_do_nothing(index_elements=["target_key"])
-    )
-    target = session.scalar(select(MonitoredDatabase).where(MonitoredDatabase.target_key == "demo"))
-    if any(getattr(target, key) != value for key, value in values.items()):
-        raise DomainError(
-            "target_changed", "Configured target differs from its saved identity.", 409
-        )
-    return target.id
-
-
 def _scenario(pattern_id: uuid.UUID, prepared) -> QueryScenario:
     return QueryScenario(
         pattern_id=pattern_id,
@@ -81,13 +59,15 @@ def create_manual(engine: Engine, settings: Settings, body: ManualWorkloadInput)
     prepared = []
     for position, query in enumerate(body.queries, start=1):
         try:
-            prepared.append(prepare_query(query))
+            prepared.append(prepare_query(query, allowed_schemas=settings.analysis_schemas))
         except DomainError as error:
             raise DomainError(
                 error.code, f"Query {position}: {error.message}", error.status
             ) from None
     with Session(engine) as session, session.begin():
-        workload = Workload(database_id=_target(session, settings), name=body.name, source="manual")
+        workload = Workload(
+            database_id=ensure_demo_target(session, settings), name=body.name, source="manual"
+        )
         session.add(workload)
         session.flush()
         patterns = {}
@@ -110,7 +90,9 @@ def create_manual(engine: Engine, settings: Settings, body: ManualWorkloadInput)
 def create_collected(engine: Engine, settings: Settings, name: str) -> WorkloadView:
     with Session(engine) as session, session.begin():
         row = Workload(
-            database_id=_target(session, settings), name=name, source="pg_stat_statements"
+            database_id=ensure_demo_target(session, settings),
+            name=name,
+            source="pg_stat_statements",
         )
         session.add(row)
         session.flush()
@@ -197,10 +179,15 @@ def get_workload(engine: Engine, identifier: uuid.UUID, *, limit=100, offset=0) 
         )
 
 
-def add_scenario(engine: Engine, pattern_id: uuid.UUID, body: ScenarioInput) -> ScenarioView:
+def add_scenario(
+    engine: Engine, pattern_id: uuid.UUID, body: ScenarioInput, *, settings=None
+) -> ScenarioView:
     with Session(engine) as session, session.begin():
         pattern = _require(session, QueryPattern, pattern_id)
-        prepared = prepare_query(QueryInput(sql=pattern.normalized_sql, **body.model_dump()))
+        prepared = prepare_query(
+            QueryInput(sql=pattern.normalized_sql, **body.model_dump()),
+            allowed_schemas=(settings or Settings()).analysis_schemas,
+        )
         if prepared.missing_parameters:
             raise DomainError(
                 "missing_parameters", "Supply all representative parameter positions."
@@ -218,10 +205,10 @@ def take_snapshot(engine: Engine, settings: Settings, workload_id: uuid.UUID) ->
             raise DomainError(
                 "wrong_workload_source", "Only collected workloads support snapshots."
             )
-        _target(session, settings)
+        ensure_demo_target(session, settings)
     with target_connection(settings) as connection:
         require_demo_identity(connection)
-        snapshot = collect_snapshot(connection)
+        snapshot = collect_snapshot(connection, allowed_schemas=settings.analysis_schemas)
     return save_snapshot(engine, workload_id, snapshot)
 
 

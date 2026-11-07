@@ -18,6 +18,8 @@ from starlette.exceptions import HTTPException
 
 from indexpilot.api.body_limit import BodyLimitMiddleware
 from indexpilot.api.dependencies import get_engine
+from indexpilot.api.plans import router as plan_router
+from indexpilot.api.schema import router as schema_router
 from indexpilot.api.workloads import router as workload_router
 from indexpilot.config import Settings
 from indexpilot.db.capabilities import Capabilities, inspect_capabilities
@@ -152,7 +154,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def ready(request: Request):
         with get_engine(request).connect() as connection:
             revision = connection.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            if revision != "0002":
+            if revision != "0003":
                 raise LocalConnectionError("metadata_migration_required")
         with target_connection(settings) as connection:
             require_demo_identity(connection)
@@ -170,6 +172,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return validate_connection(ConnectionRequest())
 
     app.include_router(workload_router)
+    app.include_router(schema_router)
+    app.include_router(plan_router)
     return app
 
 

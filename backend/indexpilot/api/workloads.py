@@ -84,7 +84,9 @@ def workload(workload_id: uuid.UUID, request: Request, limit: Limit = 100, offse
 
 @router.post("/query-patterns/{pattern_id}/scenarios", response_model=ScenarioView, status_code=201)
 def scenario(pattern_id: uuid.UUID, body: ScenarioInput, request: Request):
-    return service.add_scenario(get_engine(request), pattern_id, body)
+    return service.add_scenario(
+        get_engine(request), pattern_id, body, settings=request.app.state.settings
+    )
 
 
 @router.post("/workloads/{workload_id}/snapshots", response_model=SnapshotView, status_code=201)

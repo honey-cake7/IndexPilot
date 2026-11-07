@@ -43,3 +43,15 @@ An AST represents SQL as structured nodes. A `$1` placeholder is a ParamRef; a q
 pg_stat_statements counters accumulate. If calls go from 100 to 120 and execution time from 1,000 to 1,100 milliseconds, the interval has 20 calls and a 5 ms mean, not the cumulative mean of about 9.17 ms. `workloads/deltas.py` performs this subtraction. With no calls, the interval mean is unknown/null; aggregate totals cannot reveal p95 latency.
 
 A reset can make counters decrease, while an evicted/recreated entry can lose history. PostgreSQL 18 supplies per-entry stats_since as well as global reset/deallocation metadata. The calculator checks both; it refuses uncertain intervals instead of assuming missing history was zero. Integration tests exercised a real targeted reset and confirmed that a min/max-only reset leaves the cumulative interval usable.
+
+## M4: SQL meaning, statistics and plan trees
+
+Parsing identifies syntax; resolution identifies database objects. In `SELECT id FROM orders o JOIN users u ...`, both tables have an id, so guessing would be wrong. `sql/resolution.py` requires `o.id` or `u.id` and attaches the real relation OID, column and type. Quoted names and schemas are preserved. Schema names must also be part of pattern identity: two schemas can contain entirely different orders tables.
+
+`schema/catalogs.py` reads PostgreSQL's catalogs. An index's key order, collation and operator class affect its meaning; INCLUDE columns are payload rather than searchable leading keys. A partial predicate or expression changes which queries can use an index. M4 captures those distinctions so M5 can avoid incorrect duplicate detection.
+
+Statistics are sampled summaries. A negative n_distinct means a fraction of estimated table rows, not a negative count. A uniform equality estimate can be a useful rough description, but a popular user may have many more orders than average. That is why representative values matter and the planner's actual estimates are retained.
+
+EXPLAIN produces a tree. A Sort can have a Hash Join child, which has scan children. `plans/parser.py` keeps that structure and conditions instead of treating every scan as an independent query. The root total includes child work; adding every cost would double-count. Index-only scans may still visit the heap for visibility checks. A sequential scan on a small table or for many matching rows can be sensible.
+
+The explicit plan endpoint uses EXPLAIN without ANALYZE, so its output is not measured latency. PostgreSQL can still evaluate constant expressions during planning: `SELECT 1/0` fails even without running a workload. Read-only settings therefore need a real SQL/catalog safety policy, not just a check that the text starts with SELECT. Tests install deliberately failing functions in isolated fixture objects and verify they are rejected before planning.

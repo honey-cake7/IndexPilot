@@ -109,3 +109,19 @@ def test_bounds_file_and_query_count():
         split_workload("")
     with pytest.raises(ValidationError):
         ManualWorkloadInput(queries=[])
+
+
+def test_fingerprints_include_explicit_schema_scope():
+    schemas = ("public", "another", "third")
+
+    def prepare(sql):
+        return prepare_query(QueryInput(sql=sql), allowed_schemas=schemas).fingerprint
+
+    assert prepare("SELECT id FROM orders") == prepare("SELECT id FROM public.orders")
+    assert prepare("SELECT id FROM another.orders") != prepare("SELECT id FROM third.orders")
+
+
+@pytest.mark.parametrize("value", ["bad\x00value", "\ud800"])
+def test_parameter_values_reject_unrepresentable_postgresql_text(value):
+    with pytest.raises(ValidationError):
+        Parameter(type="text", value=value)

@@ -72,7 +72,7 @@ def nodes(root: ast.Node) -> Iterator[ast.Node]:
             stack.extend((child, depth) for child in reversed(value))
 
 
-def validate_sql(sql: str) -> ast.SelectStmt:
+def validate_sql(sql: str, *, allowed_schemas=("public",)) -> ast.SelectStmt:
     if not sql.strip() or sql_size(sql) > MAX_SQL_BYTES:
         raise DomainError("invalid_sql_size", "Provide nonempty SQL of at most 65536 UTF-8 bytes.")
     try:
@@ -103,14 +103,16 @@ def validate_sql(sql: str) -> ast.SelectStmt:
                     "CTEs, INTO, locks, windows and set operations are unsupported.",
                 )
         if isinstance(node, ast.RangeVar):
-            if node.catalogname or node.schemaname not in (None, "public"):
+            if node.catalogname or (node.schemaname and node.schemaname not in allowed_schemas):
                 raise DomainError(
-                    "unsupported_sql", "Only public-schema relations are admitted initially."
+                    "unsupported_sql", "Relation schema is outside the configured allowlist."
                 )
         if isinstance(node, ast.JoinExpr) and (node.isNatural or node.usingClause):
             raise DomainError(
                 "unsupported_sql", "Use explicit JOIN ON conditions instead of NATURAL/USING."
             )
+        if isinstance(node, ast.SortBy) and node.useOp:
+            raise DomainError("unsupported_sql", "ORDER BY USING custom operators is unsupported.")
         if isinstance(node, ast.A_Expr):
             names = tuple(part.sval for part in node.name or ())
             if (

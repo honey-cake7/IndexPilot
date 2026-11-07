@@ -111,3 +111,9 @@ uv run python scripts/collect_workload.py --samples 2 --interval-seconds 30
 The CLI prints saved workload/snapshot IDs and the number of usable deltas; the first snapshot needs a baseline. No background collector is installed. To append, provide `--workload-id` with the printed workload UUID. Parameter values for normalized collected queries are supplied through the scenario endpoint.
 
 `uv run pytest --integration -q` exercises real workload API persistence and controlled read-only probes. Its targeted reset test clears only its own probe statement's statistics. A permission-failure test briefly revokes the public statistics-view grant and restores it in a finally block; run this development suite serially on the dedicated local cluster. Tests clean up only their uniquely named metadata workloads. They do not reset all PostgreSQL statistics. Unit tests cover global reset, server restart and eviction detection without restarting or globally resetting the live cluster.
+
+## Catalogs and estimated plans (M4)
+
+Run `uv run alembic upgrade head` to apply migration 0003 and restart the backend. Readiness now expects 0003. GET `/api/v1/schema` and `/api/v1/schema/table?table_name=orders` inspect real catalogs. POST `/api/v1/plans` accepts the same SQL/frequency/parameters shape as one manual QueryInput. POST `/api/v1/query-scenarios/{id}/plan` analyzes a saved representative. GET `/api/v1/plans/{id}` reloads the saved evidence.
+
+See [PLAN_ANALYSIS.md](PLAN_ANALYSIS.md) for an executable PowerShell request, schema configuration, safety limits and response semantics. There is no ANALYZE switch, arbitrary target or index-creation endpoint. The full M4 suite passed 166 tests; fixture indexes exist only on isolated test-owned tables and are removed with their unique schemas afterward. Planner switches used within tests exercise node parsing, not performance findings.
