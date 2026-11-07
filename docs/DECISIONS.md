@@ -37,3 +37,15 @@ Bind locally with configured targets, bounded inputs and a restrictive origin po
 ## D009 — Git identity and publishing
 
 The repository is initially empty with default branch main. Windows Git Credential Manager authenticates as repository owner `honey-cake7` (Aniket Patil), with admin/push permission and no active rulesets. Local Git author is configured to that verified identity using the pre-existing configured developer email. The connected GitHub app is a different account with read-only access here, so repository publication uses authenticated local Git. Never change global identity or expose credentials.
+
+## D010 — M3 admission is explicitly syntactic
+
+M3 uses pglast's PostgreSQL 18 parser to admit a conservative SELECT subset, fingerprint patterns and safely transform parameter AST nodes. No submitted SQL is executed or explained. Representative strings are labeled syntax_only, because catalog resolution, overloaded operators, relation kinds and cast semantics require M4. Missing parameters remain unresolved. Input bytes, statement counts and AST complexity are bounded before persistence.
+
+## D011 — Raw snapshots, conservative deltas and source-clock timestamps
+
+Use pg_stat_statements 1.12, persisting raw counters and full server identity/reset metadata. Unknown/new/reset/evicted intervals return null metrics with reasons rather than optimistic estimates. Compare reset/deallocation metadata around the scan; do not claim an atomic statistics snapshot. A real repeated test exposed coarse Windows clock ticks; use PostgreSQL clock_timestamp for collection boundaries. Serialize query IDs as decimal JSON strings to preserve 64-bit precision in JavaScript.
+
+## D012 — Explicit periodic collection and milestone review
+
+An explicit bounded CLI or repeated snapshot requests provide periodic collection; no hidden daemon or distributed queue is introduced. Users supply representative parameter values, and scenario frequencies are explicit weights. As requested, finish, test, document, commit and push each milestone, then wait for the user's instruction before starting the next.

@@ -95,3 +95,19 @@ The target timeout defaults to 5 seconds, lock timeout to 1 second, and connecti
 Capability inspection probes pg_stat_statements directly rather than requiring settings-reader privileges. A null `configured` value means the current role cannot verify configuration; it is not a fabricated success. Startup connection failures are sanitized and may not reliably distinguish authentication from networking when libpq supplies no SQLSTATE.
 
 M2 executed 25 tests successfully, including actual API/DB checks and timeout enforcement. Initial metadata upgrade → downgrade → upgrade and Alembic schema-drift verification were run on a second disposable metadata database. The API is loopback-only by documented startup convention and has no multi-user authentication; do not expose it publicly.
+
+## Workloads (M3)
+
+Run `uv sync --locked` and `uv run alembic upgrade head` to install the parser/multipart dependency and migrate metadata to 0002. Restart the backend after updating. The readiness endpoint now expects revision 0002.
+
+Use `/docs` to submit `sample/workload.json` through `/api/v1/workloads/manual`, paste SQL through `/api/v1/workloads/sql`, or upload `sample/workload.sql` through `/api/v1/workloads/upload`. None of these operations execute the submitted SQL. The complete contract and limitations are in [WORKLOADS.md](WORKLOADS.md).
+
+For two explicit periodic observations:
+
+```powershell
+uv run python scripts/collect_workload.py --samples 2 --interval-seconds 30
+```
+
+The CLI prints saved workload/snapshot IDs and the number of usable deltas; the first snapshot needs a baseline. No background collector is installed. To append, provide `--workload-id` with the printed workload UUID. Parameter values for normalized collected queries are supplied through the scenario endpoint.
+
+`uv run pytest --integration -q` exercises real workload API persistence and controlled read-only probes. Its targeted reset test clears only its own probe statement's statistics. A permission-failure test briefly revokes the public statistics-view grant and restores it in a finally block; run this development suite serially on the dedicated local cluster. Tests clean up only their uniquely named metadata workloads. They do not reset all PostgreSQL statistics. Unit tests cover global reset, server restart and eviction detection without restarting or globally resetting the live cluster.

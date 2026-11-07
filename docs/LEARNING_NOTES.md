@@ -33,3 +33,13 @@ A connection is a session; a transaction is a group of work within that session.
 An extension can be available to install, installed in a database, configured correctly, and usable by the current role; these are separate facts. Reading a global configuration setting may require broader privileges than using the extension. IndexPilot checks the actual pg_stat_statements view instead of requesting unnecessary settings access.
 
 Alembic migration 0001 makes the metadata schema versioned. Upgrading creates `monitored_database`; downgrading removes it, so downgrade testing belongs on a disposable database. A database CHECK constraint rejects port 0 even if a caller bypasses Python validation. Independent database constraints protect the stored data, while Pydantic provides earlier user-facing validation.
+
+## M3: patterns, representative values and cumulative counters
+
+`user_id=101` and `user_id=202` have the same query shape, but can touch different numbers of orders. `workloads/manual.py` groups structural patterns while `query_scenario` preserves the actual examples and their frequencies. Grouping is useful for organization; it does not prove equal selectivity or performance.
+
+An AST represents SQL as structured nodes. A `$1` placeholder is a ParamRef; a quoted value is a literal node. `workloads/parameters.py` replaces the former with the latter and a built-in cast. A value containing a quote or semicolon remains one literal. Plain text substitution could accidentally alter quoted text or introduce a second statement. M3 only parses/saves these examples; M4 still needs to resolve their database meaning before planning.
+
+pg_stat_statements counters accumulate. If calls go from 100 to 120 and execution time from 1,000 to 1,100 milliseconds, the interval has 20 calls and a 5 ms mean, not the cumulative mean of about 9.17 ms. `workloads/deltas.py` performs this subtraction. With no calls, the interval mean is unknown/null; aggregate totals cannot reveal p95 latency.
+
+A reset can make counters decrease, while an evicted/recreated entry can lose history. PostgreSQL 18 supplies per-entry stats_since as well as global reset/deallocation metadata. The calculator checks both; it refuses uncertain intervals instead of assuming missing history was zero. Integration tests exercised a real targeted reset and confirmed that a min/max-only reset leaves the cumulative interval usable.

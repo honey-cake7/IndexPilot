@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M0 design with M1 database provisioning and M2 configuration/connections/capability API/initial metadata migration implemented. Workload, analysis, optimization and benchmark modules below remain planned.
+Status: M1 provisioning, M2 backend/connectivity, and M3 workload ingestion/collection are implemented. M3 supplies AST admission, typed representative parameters, normalized metadata records and pure reset-aware deltas. Catalog resolution, plans, optimization and benchmarks remain planned. SQL admission alone never authorizes execution.
 
 ## Boundaries and flow
 

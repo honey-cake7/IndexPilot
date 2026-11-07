@@ -1,6 +1,6 @@
 # Metadata database design
 
-Status: logical schema proposed at M0; M2 implements `monitored_database` in migration `0001`. Other entities remain planned and will be introduced with their usable features. Demo business data never belongs in metadata.
+Status: M2 implements `monitored_database` in migration `0001`. M3 migration `0002` adds `workload`, `query_pattern`, `query_scenario`, `workload_snapshot` and `query_statistic`. Other entities remain planned. Demo business data never belongs in metadata.
 
 ```mermaid
 erDiagram
@@ -53,3 +53,11 @@ Separating patterns from observations prevents rewriting SQL text for every snap
 Use database constraints for uniqueness, nonnegative bytes, valid job states and FK scope wherever practical; application validation also rejects NaN/Infinity. Index FKs used for history queries, collection-time ordering and `(run_id, arm, repetition)`. Use migrations and transaction rollback tests. Deletion is explicit and scoped; preserve historical analyses by default, and do not cascade-delete benchmark evidence unexpectedly.
 
 The e-commerce demo has separate `users`, `products`, `orders`, `order_items` and `payments` tables. Orders reference users; items reference orders and products; payments reference orders. Primary/unique constraints provide required indexes, while additional performance indexes are deliberately absent for experiments. Foreign keys do not automatically create indexes on their referencing columns.
+
+## M3 implementation details
+
+Workloads belong to a saved configured target. Pattern identity is unique within a workload: structural fingerprint for manual input, full server database/user/query/top-level identity for collection. Scenarios retain original SQL, typed parameter JSON, resolved representative text or missing positions, and positive bounded frequency. Different parameter values can share a pattern without overwriting each other.
+
+Each snapshot owns many statistic rows, with unique `(snapshot_id, pattern_id)` pairs. SQL text and raw cumulative values are retained at capture time. Calls, rows and execution times are typed constrained columns; ten named buffer counters use validated JSONB. Snapshot metadata supplies reset/start/eviction provenance. Deltas are calculated from saved raw snapshots rather than redundantly persisted. Foreign-key indexes support retrieval; no delete API or automatic historical deletion is provided.
+
+Migration 0002 was upgraded, downgraded to 0001 and upgraded again on a separate disposable metadata database. The main metadata database was upgraded without a destructive downgrade. Alembic schema comparison found no drift.

@@ -3,6 +3,7 @@ import logging
 import time
 import uuid
 from contextlib import asynccontextmanager
+from threading import Lock
 from typing import Literal
 
 import psycopg
@@ -15,11 +16,14 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException
 
+from indexpilot.api.body_limit import BodyLimitMiddleware
+from indexpilot.api.dependencies import get_engine
+from indexpilot.api.workloads import router as workload_router
 from indexpilot.config import Settings
 from indexpilot.db.capabilities import Capabilities, inspect_capabilities
 from indexpilot.db.connections import require_demo_identity, target_connection
+from indexpilot.errors import DomainError
 from indexpilot.local import LocalConnectionError
-from indexpilot.metadata.session import metadata_engine
 
 logger = logging.getLogger("indexpilot")
 logger.setLevel(logging.INFO)
@@ -51,6 +55,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="IndexPilot", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
+    app.state.metadata_lock = Lock()
+    app.add_middleware(BodyLimitMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[settings.frontend_origin],
@@ -118,6 +124,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def connection_error(request: Request, error: LocalConnectionError):
         return failure(request, error.code, str(error), 503)
 
+    @app.exception_handler(DomainError)
+    async def domain_error(request: Request, error: DomainError):
+        return failure(request, error.code, error.message, error.status)
+
     @app.exception_handler(psycopg.Error)
     async def database_error(request: Request, error: psycopg.Error):
         if error.sqlstate == "42501":
@@ -140,11 +150,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/health/ready", response_model=Status)
     def ready(request: Request):
-        if request.app.state.metadata_engine is None:
-            request.app.state.metadata_engine = metadata_engine(settings)
-        with request.app.state.metadata_engine.connect() as connection:
+        with get_engine(request).connect() as connection:
             revision = connection.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            if not revision:
+            if revision != "0002":
                 raise LocalConnectionError("metadata_migration_required")
         with target_connection(settings) as connection:
             require_demo_identity(connection)
@@ -161,6 +169,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def demo_capabilities():
         return validate_connection(ConnectionRequest())
 
+    app.include_router(workload_router)
     return app
 
 
