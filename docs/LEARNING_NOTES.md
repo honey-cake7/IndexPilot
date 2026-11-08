@@ -65,3 +65,19 @@ Two indexes listing the same columns may differ in key order, NULL placement, co
 Candidate generation is not optimization. The generator knows which query patterns motivated each definition, but has not measured its hypothetical cost, storage or write penalty. Combinations are bounded to avoid factorial search. M6 will ask PostgreSQL about those alternatives; M7 will consider the whole frequency-weighted workload.
 
 The evidence migration demonstrates normalization: one candidate can help several query patterns, and one query can motivate several candidates. A membership table with foreign keys expresses that relationship. Preserving the prototype batch through migration verifies that schema evolution does not require throwing away collected work.
+
+## M6: planner experiments, session memory and honest estimates
+
+HypoPG gives PostgreSQL an imaginary index definition. It lets EXPLAIN consider that index without constructing a real disk index. Another connection cannot see it. `evaluation/session.py` therefore holds one connection through reset, creation, planning and cleanup; changing connections halfway would invalidate the experiment.
+
+A transaction and a connection are different lifetimes. A real test showed that rolling back the transaction still left the imaginary index in that connection's memory. Explicit HypoPG reset is necessary. After a statement timeout, PostgreSQL first requires rollback to recover from the failed transaction, then we call and verify reset. If cleanup fails, we close the connection rather than reuse uncertain state. Read-only transactions can allow these session-memory functions while still prohibiting physical table/index writes.
+
+The baseline is the current planner result with no hypothetical indexes, retaining all existing real indexes. A saved plan from yesterday could reflect different statistics or settings, so the evaluator captures a fresh baseline for today's trial. Representative values also matter: the typed literal for user 101 stays the same across baseline and candidate trials, even when it originally arrived as `$1`.
+
+For arithmetic only, two queries with frequencies 10 and 1 and costs 20 and 100 contribute `10*20 + 1*100 = 300` planner units. This is a weighted comparison score, not 300 milliseconds. Lower estimated cost may suggest an index worth testing, but only later execution benchmarks can establish a speedup.
+
+Two indexes that help the same filter may compete for the same plan. Their individual percentage benefits cannot be added. `engine.py` creates both together and asks PostgreSQL again. It also flags an individual query whose estimated cost rises even if the weighted total falls. This supplies evidence for M7's selection algorithm; it does not itself select a recommendation.
+
+Unknown storage is not zero storage. If the size function is inaccessible, the member and whole-set byte estimates remain null. Only the empty hypothetical set legitimately costs zero additional hypothetical bytes. Likewise, percentage improvement over a zero baseline is undefined, so it is null rather than a division error or a made-up gain.
+
+Normalized evaluation tables preserve one frozen query per run and one plan per query/set pair. Candidate membership uses foreign keys. Later GET requests can explain a historical experiment without rerunning it against a changed database. Generation's old `not_evaluated` field stays a generation snapshot; the separate evaluation record holds the newer evidence.

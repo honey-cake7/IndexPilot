@@ -1,6 +1,6 @@
 # Metadata database design
 
-Status: migrations 0001–0003 implement targets, workloads, statistics and plan analysis. M5 migrations 0004–0005 add candidate batches, source membership, decisions and normalized evidence. Evaluation/recommendation/benchmark entities remain planned. Demo business data never belongs in metadata.
+Status: migrations 0001–0005 implement targets, workloads, statistics, plans and candidate batches/evidence. M6 migration 0006 adds evaluation runs, frozen source queries, evaluated sets, members and raw plans. Analysis/selection, recommendations, benchmarks and reports remain planned. Demo business data never belongs in metadata.
 
 ```mermaid
 erDiagram
@@ -19,12 +19,14 @@ erDiagram
     workload_snapshot ||--o{ query_statistic : contains
     query_pattern ||--o{ query_statistic : measured
     workload ||--o{ analysis_run : analyzed
-    analysis_run ||--o{ index_candidate : proposes
-    analysis_run ||--o{ index_evaluation : evaluates_sets
+    candidate_batch ||--o{ evaluation_run : evaluated
+    evaluation_run ||--o{ evaluation_query : freezes
+    plan_analysis ||--o{ evaluation_query : supplies
+    evaluation_run ||--o{ index_evaluation : evaluates_sets
     index_evaluation ||--o{ evaluation_member : contains
     index_candidate ||--o{ evaluation_member : participates
-    index_evaluation ||--o{ execution_plan : records
-    query_scenario ||--o{ execution_plan : planned
+    index_evaluation ||--o{ evaluation_plan : records
+    evaluation_query ||--o{ evaluation_plan : replanned
     analysis_run ||--o| recommendation_set : produces
     recommendation_set ||--o{ recommendation_set_index : selects
     index_candidate ||--o{ recommendation_set_index : chosen
@@ -44,10 +46,13 @@ Every entity has a primary key (UUID where externally addressed; bounded integer
 | workload_snapshot | Workload FK, collection time, server start/reset/deallocation metadata, collection outcome and extension version. |
 | query_statistic | Snapshot and pattern FKs with composite uniqueness; raw cumulative calls/time/rows/buffers. Derived deltas retain their predecessor and validity reason, or are recalculated from raw snapshots. |
 | analysis_run | Workload revision, target schema/statistics provenance, configuration, status and algorithm version; settings frozen on completion. |
-| index_candidate | Analysis FK, canonical index signature, ordered key details, reasons, estimated bytes; unique signature within analysis. |
-| index_evaluation | Analysis FK, canonical set signature, estimated weighted cost and warnings; unique compatible set signature within run. |
-| evaluation_member | Composite PK of evaluation and candidate FKs; estimated bytes for this evaluation when available. |
-| execution_plan | Evaluation and scenario FKs; raw JSON and extracted root metrics; unique pair; FK scope ensures same analysis workload. Empty set evaluation supplies baseline plans. |
+| candidate_batch | Target FK, generation limits/version, observation time, truncation and warnings; source plans linked through candidate_batch_source. |
+| index_candidate | Batch FK, canonical signature, structured definition and proposed/rejected decision; unique signature within batch. Generation-time benefit/size remain unknown. |
+| evaluation_run | Batch FK, completed/unavailable/failed status, capabilities, requested sets, context, warnings, error code and cleanup confirmation. |
+| evaluation_query | Run/source-plan FKs, frozen resolved query/catalog context and positive frequency; unique source per run. |
+| index_evaluation | Run FK, canonical set signature, optional weighted planner cost/bytes and warnings; unique set per run and at most one baseline. |
+| evaluation_member | Composite PK of evaluation/candidate FKs; hypothetical OID/name and optional positive estimated bytes. |
+| evaluation_plan | Evaluation/query FKs, raw JSON and optional nonnegative finite root cost; unique pair. Service pairs queries/sets from the same run. Empty-set evaluation supplies fresh baseline plans. |
 | recommendation_set | Unique analysis FK, selected evaluation FK, baseline evaluation FK, budget, heuristic penalty settings, stop reason and warning summary. |
 | recommendation_set_index | Composite recommendation/candidate PK; selection order and marginal trial reference. Prevent references to another analysis. |
 | benchmark_run | Recommendation FK, isolated target identity, job status, dataset seed/scale, versions, conditions and error code. |
@@ -72,7 +77,7 @@ Migration 0002 was upgraded, downgraded to 0001 and upgraded again on a separate
 
 ## M4 implementation details
 
-`plan_analysis` references the configured target and optionally a saved scenario; ad hoc plans need no artificial workload row. It stores original SQL, frequency, source capture time/version, resolved query/catalog context, raw EXPLAIN JSON, selected settings and extracted root summary. Cost/frequency CHECK constraints reject invalid values; target/scenario/time indexes support retrieval. JSON represents immutable variable-shaped evidence, while identities and references remain relational. The later `execution_plan` evaluation relationship is still proposed; M4 does not pretend hypothetical evaluations exist yet.
+`plan_analysis` references the configured target and optionally a saved scenario; ad hoc plans need no artificial workload row. It stores original SQL, frequency, source capture time/version, resolved query/catalog context, raw EXPLAIN JSON, selected settings and extracted root summary. Cost/frequency CHECK constraints reject invalid values; target/scenario/time indexes support retrieval. JSON represents immutable variable-shaped evidence, while identities and references remain relational. M6's separate evaluation_query/evaluation_plan tables now retain later replanning evidence.
 
 Migration 0003 upgrade → downgrade to 0002 → upgrade passed on the separate disposable metadata database, with no schema drift. Historical plan retrieval uses stored catalog context, not the target's latest mutable schema/statistics.
 
@@ -80,4 +85,12 @@ Migration 0003 upgrade → downgrade to 0002 → upgrade passed on the separate 
 
 `candidate_batch` stores the configured target, capture timestamps, requested limits, algorithm version, counts, truncation status and warnings. `candidate_batch_source` links each source plan once. `index_candidate` stores one structured definition/signature per batch with a constrained proposed/rejected status and reason. `index_candidate_evidence` uses a composite candidate/plan/alias/reason key, preserving many-to-many query provenance with foreign keys. Variable key signatures remain immutable structured JSON; source relationships are not hidden in delimited strings.
 
-Migration 0005 converts the endpoint prototype's JSON evidence into normalized rows. Its downgrade reconstructs that evidence without dropping candidate/batch records; a full data-bearing round trip was checked. The existing analysis_run/index_evaluation relationships in the design diagram remain proposed and are not claimed as implemented.
+Migration 0005 converts the endpoint prototype's JSON evidence into normalized rows. Its downgrade reconstructs that evidence without dropping candidate/batch records; a full data-bearing round trip was checked. Analysis_run, recommendation, benchmark and report entities in the design diagram remain proposed.
+
+## M6 implementation details
+
+An evaluation_run belongs to one candidate_batch. It freezes representative query context/frequency once per source in evaluation_query. Each index_evaluation records the empty baseline or a complete candidate set; evaluation_member links its candidates with session-local identifiers and estimated bytes. Evaluation_plan links each set to each frozen query and retains its raw PostgreSQL EXPLAIN. A per-run partial unique index allows at most one baseline. Foreign keys, set/query uniqueness, finite cost checks and positive member-size checks protect stored records; application validation enforces same-run/same-batch membership.
+
+Runs are saved atomically after synchronous evaluation, including safe failed/unavailable records; failures publish no partial comparisons. There is no persistent running-job state in M6. Retrieval uses frozen evidence without connecting to the target. Query literals, plans and statistics remain sensitive local metadata. Hypothetical identifiers are historical session names, never physical deployment identifiers.
+
+Migration 0006 upgrade, downgrade to 0005 and re-upgrade passed on the separate disposable metadata database; Alembic reported no schema drift. The main metadata database was upgraded to 0006 without downgrading its saved data.

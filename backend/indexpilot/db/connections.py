@@ -7,10 +7,14 @@ from indexpilot.local import connect_local
 
 
 @contextmanager
-def target_connection(settings: Settings):
+def target_connection(settings: Settings, *, repeatable_read=False):
     # A new physical connection per analysis avoids pooled hypothetical-session leakage.
     with connect_local("analyzer", settings=settings) as connection:
-        connection.execute("SET TRANSACTION READ ONLY")
+        connection.execute(
+            "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY"
+            if repeatable_read
+            else "SET TRANSACTION READ ONLY"
+        )
         connection.execute(
             "SELECT set_config('statement_timeout', %s, true)",
             (str(settings.statement_timeout_ms),),

@@ -122,6 +122,18 @@ See [PLAN_ANALYSIS.md](PLAN_ANALYSIS.md) for an executable PowerShell request, s
 
 Run `uv sync --locked`, `uv run alembic upgrade head` and restart the backend. Metadata now expects revision 0005: migration 0004 adds candidate batches/decisions; 0005 normalizes evidence while preserving saved data. The full migrations were reversed/reapplied on the disposable metadata database, and a populated evidence round trip preserved the saved batch exactly.
 
-POST `/api/v1/candidates` with `{ "plan_ids": ["<saved-plan-UUID>"], "max_columns": 3, "max_candidates": 32 }`. GET `/api/v1/candidates/{id}` reloads decisions; GET `/api/v1/candidates` lists batches. [CANDIDATES.md](CANDIDATES.md) contains a complete executable request and the duplicate/overlap rules. Generation does not require HypoPG or create real indexes. Benefits and size fields are null until evaluation exists.
+POST `/api/v1/candidates` with `{ "plan_ids": ["<saved-plan-UUID>"], "max_columns": 3, "max_candidates": 32 }`. GET `/api/v1/candidates/{id}` reloads decisions; GET `/api/v1/candidates` lists batches. [CANDIDATES.md](CANDIDATES.md) contains a complete executable request and the duplicate/overlap rules. Generation does not require HypoPG or create real indexes. Its generation-time benefits and size fields stay null; M6 adds separate evaluation runs.
 
 M5 verification passed 204 tests (131 unit, 73 PostgreSQL/API integration). Additional tests validate generated SQL with session-local HypoPG and reset it; they do not measure benefit. Fixture index creation and schema changes affect only isolated test-owned tables. Pytest importlib mode keeps matching unit/integration test module names independent.
+
+## Hypothetical set evaluation (M6)
+
+Run `uv sync --locked`, `uv run alembic upgrade head` and restart the backend. Readiness now expects **0006**. Earlier revision numbers above describe their historical milestones. `/docs` is the interactive API entry; `/` and `/favicon.ico` return 404 because there is no frontend route yet.
+
+POST `/api/v1/evaluations` with `{ "batch_id": "<saved-batch-UUID>" }` obtains a fresh baseline, singleton trials and the combined proposed set. Optional `candidate_sets` requests particular combinations. GET `/api/v1/evaluations/{id}` reloads evidence and GET `/api/v1/evaluations?batch_id=<UUID>` lists runs with limit/offset pagination. [HYPOTHETICAL_EVALUATION.md](HYPOTHETICAL_EVALUATION.md) contains executable PowerShell, units, status/error semantics and lifecycle details.
+
+The default cooperative planning budget is 30 seconds; `INDEXPILOT_EVALUATION_TIMEOUT_SECONDS` permits 1–120. Per-statement limits and independent cleanup limits also apply, so this is not an exact request deadline. Estimates are planner costs and HypoPG bytes, never measured runtime. Missing storage remains null. No workload selection or physical index deployment runs in M6.
+
+M6 verification: **240 passed** with `uv run pytest --integration -q` (153 unit, 87 real PostgreSQL/API). The default suite intentionally skips the 87 integration cases. The new cases verify real session isolation, reset after timeout/error, combined plans, weighted costs, size permissions, unavailable extension, safe failures, cached context and history. Some tests briefly revoke/restore public HypoPG function grants; one terminates only its own test backend. Run the development integration suite serially, on the dedicated local cluster. Fixture schemas/metadata are removed afterward; existing demo/metadata records are preserved. No performance benchmark has run.
+
+Migration 0006 was upgraded/downgraded to 0005/re-upgraded on the separate disposable metadata database at port 55433, with no drift. The main metadata database at 55432 was only upgraded to 0006. Never run a destructive downgrade against retained application history just to test a migration.

@@ -7,12 +7,16 @@ from sqlalchemy import (
     DateTime,
     Double,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
     Uuid,
     func,
+)
+from sqlalchemy import (
+    text as sa_text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -204,3 +208,94 @@ class IndexCandidateEvidence(Base):
     query_alias: Mapped[str] = mapped_column(String(63), primary_key=True)
     reason: Mapped[str] = mapped_column(String(32), primary_key=True)
     explanation: Mapped[str] = mapped_column(Text)
+
+
+class EvaluationRun(Base):
+    __tablename__ = "evaluation_run"
+    __table_args__ = (
+        CheckConstraint("status IN ('completed','unavailable','failed')", name="evaluation_status"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    batch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("candidate_batch.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    status: Mapped[str] = mapped_column(String(16))
+    capability: Mapped[dict] = mapped_column(JSONB)
+    requested_sets: Mapped[list] = mapped_column(JSONB)
+    context: Mapped[dict] = mapped_column(JSONB)
+    warnings: Mapped[list] = mapped_column(JSONB)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    cleanup_confirmed: Mapped[bool]
+
+
+class EvaluationQuery(Base):
+    __tablename__ = "evaluation_query"
+    __table_args__ = (
+        UniqueConstraint("run_id", "source_plan_id", name="evaluation_query_source"),
+        CheckConstraint("frequency>0 AND frequency<=1000000000", name="evaluation_query_frequency"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("evaluation_run.id"), index=True)
+    source_plan_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("plan_analysis.id"), index=True)
+    frequency: Mapped[float] = mapped_column(Double)
+    analysis: Mapped[dict] = mapped_column(JSONB)
+
+
+class IndexEvaluation(Base):
+    __tablename__ = "index_evaluation"
+    __table_args__ = (
+        UniqueConstraint("run_id", "set_signature", name="evaluation_set_signature"),
+        CheckConstraint(
+            "weighted_cost IS NULL OR (weighted_cost>=0 AND weighted_cost<'Infinity'::float8)",
+            name="evaluation_cost",
+        ),
+        CheckConstraint(
+            "estimated_size_bytes IS NULL OR estimated_size_bytes>=0", name="evaluation_storage"
+        ),
+        Index(
+            "uq_evaluation_baseline", "run_id", unique=True, postgresql_where=sa_text("is_baseline")
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("evaluation_run.id"), index=True)
+    set_signature: Mapped[str] = mapped_column(String(64))
+    is_baseline: Mapped[bool]
+    weighted_cost: Mapped[float | None] = mapped_column(Double)
+    estimated_size_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    storage_complete: Mapped[bool]
+    warnings: Mapped[list] = mapped_column(JSONB)
+
+
+class EvaluationMember(Base):
+    __tablename__ = "evaluation_member"
+    __table_args__ = (
+        CheckConstraint(
+            "estimated_size_bytes IS NULL OR estimated_size_bytes>0", name="member_storage"
+        ),
+    )
+    evaluation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("index_evaluation.id"), primary_key=True
+    )
+    candidate_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("index_candidate.id"), primary_key=True, index=True
+    )
+    hypothetical_oid: Mapped[int] = mapped_column(BigInteger)
+    hypothetical_name: Mapped[str] = mapped_column(Text)
+    estimated_size_bytes: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class EvaluationPlan(Base):
+    __tablename__ = "evaluation_plan"
+    __table_args__ = (
+        UniqueConstraint("evaluation_id", "query_id", name="evaluation_plan_query"),
+        CheckConstraint(
+            "total_cost IS NULL OR (total_cost>=0 AND total_cost<'Infinity'::float8)",
+            name="evaluation_plan_cost",
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    evaluation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("index_evaluation.id"), index=True)
+    query_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("evaluation_query.id"), index=True)
+    total_cost: Mapped[float | None] = mapped_column(Double)
+    raw_explain: Mapped[list] = mapped_column(JSONB)

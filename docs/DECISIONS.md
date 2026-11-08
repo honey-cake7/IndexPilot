@@ -73,3 +73,15 @@ Exact suppression compares live/ready/valid ordinary index signatures, including
 ## D018 — Normalized candidate evidence with data-preserving migration
 
 The working M5 prototype initially stored evidence alongside definitions. Migration 0005 preserves it while splitting candidate/plan/alias/reason relationships into a foreign-keyed table, supporting later query explanations without dangling plan IDs. A saved prototype batch survived downgrade/re-upgrade unchanged. Candidate definitions remain structured snapshots; evidence relationships are relational. Pytest now uses importlib mode so unit/integration modules can share meaningful basenames without import collisions.
+
+## D019 — Fresh, complete-set planning in one context
+
+M6 uses one exclusively held repeatable-read/read-only target connection per run. It refreshes source identities/catalogs, reruns SQL resolution, recompiles saved candidate definitions structurally and obtains a fresh empty-set baseline. Every trial replans all queries with the whole set present. Historical M4 costs and additive singleton percentages cannot substitute for this comparison. Parameter bindings preserved as AST literals are revalidated rather than interpolated. Frequency-weighted root costs remain planner units, not runtime.
+
+## D020 — Explicit HypoPG cleanup and scoped caching
+
+Live tests show rollback leaves hypothetical indexes in session memory. Always reset and verify both hypothetical and hidden-index state, recovering aborted transactions only to perform cleanup. Failed cleanup discards the physical connection. The private 65-set cache belongs to one fixed copied context and checks selected planner settings; any failure invalidates it. No cross-run cache is implemented, avoiding claims of reliable shared statistics/schema invalidation. Repeatable read does not freeze every planner input or physical change.
+
+## D021 — Separate immutable evaluation evidence
+
+M6 migration 0006 normalizes run/query/set/member/plan rows and records outcomes atomically after synchronous execution. Generation snapshots remain unchanged; evaluation evidence has its own identity. Failed/unavailable runs publish no partial comparisons, and missing costs/sizes are null rather than zero. Optional size access can be absent while cost planning remains usable. Unknown bytes cannot justify a future hard-budget selection. No measured speedup, write penalty, optimizer decision or physical deployment is inferred from these estimates.

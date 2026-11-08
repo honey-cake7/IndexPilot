@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     lock_timeout_ms: int = Field(default=1000, ge=100, le=5000)
     frontend_origin: str = "http://localhost:5173"
     analysis_schemas: tuple[str, ...] = ("public",)
+    evaluation_timeout_seconds: float = Field(default=30, ge=1, le=120, allow_inf_nan=False)
 
     @field_validator("analysis_schemas")
     @classmethod

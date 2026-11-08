@@ -23,8 +23,8 @@ from indexpilot.metadata.models import (
     PlanAnalysis,
 )
 from indexpilot.metadata.targets import ensure_demo_target
+from indexpilot.schema.context import refresh_analyses
 from indexpilot.sql.models import SQLAnalysis
-from indexpilot.sql.safety import require_safe_table
 
 
 def create_batch(engine: Engine, settings: Settings, body: CandidateRequest):
@@ -43,58 +43,11 @@ def create_batch(engine: Engine, settings: Settings, body: CandidateRequest):
     tables = {}
     with target_connection(settings) as connection:
         require_demo_identity(connection)
-        for source in sources:
-            for observed in source.analysis.tables:
-                if observed.oid not in tables:
-                    try:
-                        current = require_safe_table(
-                            connection,
-                            observed.schema_name,
-                            observed.name,
-                            allowed_schemas=settings.analysis_schemas,
-                        )
-                    except DomainError as error:
-                        if error.code == "relation_not_found":
-                            raise DomainError(
-                                "stale_plan",
-                                "Source relation is absent; analyze the query again.",
-                                409,
-                            ) from None
-                        raise
-                    if current.oid != observed.oid:
-                        raise DomainError(
-                            "stale_plan", "Table identity changed; analyze the query again.", 409
-                        )
-                    tables[current.oid] = current
-                current = tables[observed.oid]
-                if (current.schema_name, current.name) != (observed.schema_name, observed.name):
-                    raise DomainError(
-                        "stale_plan", "Source relation was renamed; analyze the query again.", 409
-                    )
-                current_columns = {column.name: column for column in current.columns}
-                for usage in source.analysis.columns:
-                    if usage.column.relation_oid != observed.oid:
-                        continue
-                    old = next(
-                        (column for column in observed.columns if column.name == usage.column.name),
-                        None,
-                    )
-                    new = current_columns.get(usage.column.name)
-                    if (
-                        old is None
-                        or new is None
-                        or (old.number, old.type_oid, old.collation_oid)
-                        != (
-                            new.number,
-                            new.type_oid,
-                            new.collation_oid,
-                        )
-                    ):
-                        raise DomainError(
-                            "stale_plan",
-                            "Referenced columns changed; analyze the query again.",
-                            409,
-                        )
+        tables = refresh_analyses(
+            connection,
+            [source.analysis for source in sources],
+            allowed_schemas=settings.analysis_schemas,
+        )
         classes = load_operator_classes(connection)
         observed_at = connection.execute("SELECT clock_timestamp()").fetchone()[0]
     options = GenerationOptions(max_columns=body.max_columns, max_candidates=body.max_candidates)

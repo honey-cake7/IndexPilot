@@ -1,6 +1,6 @@
 # Workload-aware optimization
 
-Status: algorithm specification at M0; no optimizer or measured results yet. M5 now supplies bounded [candidate batches](CANDIDATES.md), but its structural priority is not this workload-cost optimization algorithm. M6 must first provide real set evaluations.
+Status: the selection algorithm below remains planned for M7; no optimizer or measured performance results yet. M5 supplies bounded [candidate batches](CANDIDATES.md). M6 now implements [HypoPG set evaluations](HYPOTHETICAL_EVALUATION.md), fresh baselines, frequency-weighted C(S), estimated B(S) and per-query regression flags. It evaluates requested sets directly; it does not select a storage-budget solution or calculate a write penalty.
 
 For index set S, let `c(q, S)` be PostgreSQL's estimated root total plan cost for a representative query and `f(q)` its execution frequency. Define:
 

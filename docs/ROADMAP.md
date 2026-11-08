@@ -6,7 +6,7 @@ This document defines dependency milestones, not a calendar. The essential path 
 
 Essential functionality includes modules A–J, the nine dashboard views, three-way isolated benchmarks, history, reports, CI and the complete demonstration. Advanced features are explicitly optional: additional index types, partial/expression/covering indexes, automatic parameter sampling, broader SQL grammar, online collection scheduling and exhaustive optimization experiments. They cannot substitute for essential acceptance criteria.
 
-Verified status: **M0–M5 completed, verified and published (records in PROGRESS); M6–M12 planned.** Development pauses after each milestone for user review.
+Verified status: **M0–M5 completed, verified and published; M6 implemented and verified, publication pending; M7–M12 planned.** Records are in PROGRESS. Development pauses after each milestone for user review.
 
 Each milestone must have cohesive reviewed changes, executed relevant checks, updated README and progress, a natural commit message, a push and a remote-SHA verification. Record actual test counts and skipped/blocked checks. No milestone is complete merely because its files exist. Never use fixtures or mocks as proof of PostgreSQL behavior. Commit links for the containing commit are resolved through Git history rather than self-referential hashes inside that commit.
 
