@@ -29,6 +29,10 @@ from indexpilot.metadata.models import (
     OptimizationRun,
     OptimizationTrial,
     PlanAnalysis,
+    RecommendationIndexQuery,
+    RecommendationQuery,
+    RecommendationSet,
+    RecommendationSetIndex,
 )
 from indexpilot.metadata.session import metadata_engine
 from indexpilot.sql.models import SQLAnalysis
@@ -86,6 +90,12 @@ def evaluation_api(evaluation_schema):
             optimizations = select(OptimizationRun.id).where(
                 OptimizationRun.evaluation_run_id.in_(runs)
             )
+            recommendations = select(RecommendationSet.id).where(
+                RecommendationSet.optimization_id.in_(optimizations)
+            )
+            for model in (RecommendationIndexQuery, RecommendationSetIndex, RecommendationQuery):
+                db.execute(delete(model).where(model.recommendation_id.in_(recommendations)))
+            db.execute(delete(RecommendationSet).where(RecommendationSet.id.in_(recommendations)))
             db.execute(delete(OptimizationTrial).where(OptimizationTrial.run_id.in_(optimizations)))
             db.execute(
                 delete(OptimizationCandidate).where(OptimizationCandidate.run_id.in_(optimizations))

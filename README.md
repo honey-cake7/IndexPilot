@@ -6,7 +6,7 @@ IndexPilot is being built to answer: **which combination of indexes helps this w
 
 ## Current status
 
-Milestones 0–7: verified PostgreSQL environment, saved workloads, statistics collection, catalog-resolved EXPLAIN analysis, bounded B-Tree candidates, actual HypoPG set evaluation and storage-budget selection. The greedy optimizer replans combinations, weights query frequencies, supports optional heuristic write penalties/regression limits and saves a trial history after fresh final verification. The dashboard and physical benchmark runner are not implemented yet. There are no performance benchmark results. See [progress](docs/PROGRESS.md).
+Milestones 0–8: verified PostgreSQL environment, saved workloads, statistics collection, catalog-resolved plans, bounded B-Tree candidates, HypoPG set evaluation, storage-budget selection and saved recommendation explanations. Recommendations retain query contributions, selection-step evidence, plans, uncertainty and provenance, with separate reviewable SQL export. The dashboard and physical benchmark runner are not implemented yet. There are no performance benchmark results. See [progress](docs/PROGRESS.md).
 
 ## Architecture and planned stack
 
@@ -64,12 +64,13 @@ Ordinary analysis will use EXPLAIN without ANALYZE. Hypothetical planner cost is
 - [Architecture and security boundaries](docs/ARCHITECTURE.md)
 - [Metadata design and ER diagram](docs/DATABASE_DESIGN.md)
 - [Working optimization API, algorithm and limits](docs/OPTIMIZATION_ALGORITHM.md)
+- [Saved recommendations, explanations and SQL export](docs/RECOMMENDATIONS.md)
 - [Benchmark methodology and evidence policy](docs/BENCHMARKING.md)
 - [Technical decisions](docs/DECISIONS.md)
 - [Learning notes](docs/LEARNING_NOTES.md)
 
 ## Limitations
 
-The API supports only the configured local demo target and a narrow SQL/catalog subset. Ingestion remains `syntax_only`; explicit plan/evaluation/optimization requests obtain estimates without ANALYZE. Candidate batches preserve their generation-time `not_evaluated` snapshot; separate runs hold later evidence. Greedy selection can miss useful combinations and offers no global-optimum guarantee. Unknown bytes cannot enter the hard budget; write penalties are user-configured heuristics. Estimates do not prove runtime improvement. Recommendation explanations/export, physical benchmarking and the frontend remain pending. Planner costs are not milliseconds.
+The API supports only the configured local demo target and a narrow SQL/catalog subset. Ingestion remains `syntax_only`; planning/optimization uses EXPLAIN without ANALYZE. Candidate batches retain their generation-time status; later records hold estimated evidence. Greedy selection offers no global-optimum guarantee. Unknown bytes cannot enter the hard budget; write penalties remain heuristics. Saved recommendations are historical snapshots, and exported SQL requires deliberate human review. Physical benchmarking and the frontend remain pending. Planner costs are not milliseconds.
 
 The project relies on PostgreSQL, HypoPG and pglast rather than an LLM to determine index validity. Technical sources are linked in the relevant design documents. AI-assisted contributions must meet the same review, test and evidence standards as other contributions.

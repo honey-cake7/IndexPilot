@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     Double,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     String,
@@ -359,3 +360,89 @@ class OptimizationTrial(Base):
     chosen: Mapped[bool]
     reason: Mapped[str] = mapped_column(String(64))
     metrics: Mapped[dict] = mapped_column(JSONB)
+
+
+class RecommendationSet(Base):
+    __tablename__ = "recommendation_set"
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    optimization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("optimization_run.id"), unique=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    explanation_version: Mapped[str] = mapped_column(String(64))
+    provenance: Mapped[dict] = mapped_column(JSONB)
+    options: Mapped[dict] = mapped_column(JSONB)
+    summary: Mapped[dict] = mapped_column(JSONB)
+    warnings: Mapped[list] = mapped_column(JSONB)
+
+
+class RecommendationSetIndex(Base):
+    __tablename__ = "recommendation_set_index"
+    __table_args__ = (
+        UniqueConstraint("recommendation_id", "selection_order", name="recommendation_index_order"),
+        UniqueConstraint("recommendation_id", "source_trial_id", name="recommendation_index_trial"),
+        CheckConstraint("selection_order BETWEEN 1 AND 32", name="recommendation_selection_order"),
+        CheckConstraint("estimated_size_bytes>0", name="recommendation_index_bytes"),
+    )
+    recommendation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("recommendation_set.id"), primary_key=True
+    )
+    candidate_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("index_candidate.id"), primary_key=True, index=True
+    )
+    source_trial_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("optimization_trial.id"), index=True
+    )
+    selection_order: Mapped[int]
+    definition: Mapped[dict] = mapped_column(JSONB)
+    estimated_size_bytes: Mapped[int] = mapped_column(BigInteger)
+    explanation: Mapped[dict] = mapped_column(JSONB)
+    deployment_sql: Mapped[str] = mapped_column(Text)
+
+
+class RecommendationQuery(Base):
+    __tablename__ = "recommendation_query"
+    __table_args__ = (
+        CheckConstraint(
+            "frequency>0 AND frequency<=1000000000", name="recommendation_query_frequency"
+        ),
+        UniqueConstraint(
+            "recommendation_id", "evaluation_query_id", name="recommendation_query_once"
+        ),
+    )
+    recommendation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("recommendation_set.id"), primary_key=True
+    )
+    source_plan_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("plan_analysis.id"), primary_key=True, index=True
+    )
+    evaluation_query_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("evaluation_query.id"), index=True
+    )
+    frequency: Mapped[float] = mapped_column(Double)
+    original_sql: Mapped[str] = mapped_column(Text)
+    analysis: Mapped[dict] = mapped_column(JSONB)
+    baseline_raw_explain: Mapped[list] = mapped_column(JSONB)
+    hypothetical_raw_explain: Mapped[list] = mapped_column(JSONB)
+    explanation: Mapped[dict] = mapped_column(JSONB)
+
+
+class RecommendationIndexQuery(Base):
+    __tablename__ = "recommendation_index_query"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["recommendation_id", "candidate_id"],
+            ["recommendation_set_index.recommendation_id", "recommendation_set_index.candidate_id"],
+        ),
+        ForeignKeyConstraint(
+            ["recommendation_id", "source_plan_id"],
+            ["recommendation_query.recommendation_id", "recommendation_query.source_plan_id"],
+        ),
+    )
+    recommendation_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    candidate_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    source_plan_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    proposed_evidence: Mapped[list] = mapped_column(JSONB)
+    used_in_final_plan: Mapped[bool]

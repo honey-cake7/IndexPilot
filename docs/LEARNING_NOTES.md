@@ -95,3 +95,15 @@ The optional write penalty is a configurable preference against maintenance cost
 Greedy selection is a practical search rule, not proof of the best possible answer. It can miss two indexes that help only together. A complete round compares every available next addition; the evaluation cap cannot quietly privilege the first visited candidate. One final fresh planning call is reserved, and changed costs/storage prevent saving an uncertain selection. The saved trace shows decisions made at each step; the final total gain does not belong independently to every chosen index.
 
 Normalized optimizer records link choices to the plans that justified them. Selected order has its own constrained rows. Both those records and the evaluation evidence commit in one transaction, so a failed membership insert cannot leave a half-saved optimization. Recommendation explanations, physical benchmarking and the dashboard still come later.
+
+## M8: keeping an explanation faithful to its evidence
+
+A recommendation is a historical snapshot, not a fresh claim about today's database. M8 copies the chosen definitions, settings, representative queries, plans and observation times from a completed optimization. Later source changes do not silently rewrite it. Foreign keys keep the origin traceable, while copied values preserve what was explained. A repeated save returns the existing snapshot.
+
+Query contribution and index contribution answer different questions. A query's final weighted reduction is its frequency times its before/after root-cost difference. That describes the complete final index set. An index's marginal gain describes the moment it was added to the preceding selected set. Assigning the final whole-set improvement independently to every selected index would double-count interacting benefits.
+
+Confidence should follow the available evidence. Real PostgreSQL planner estimates justify an estimated comparison; they do not establish measured latency. M8 exposes missing statistics, captured ANALYZE times, regression warnings and unmeasured write overhead. It uses planner_estimate rather than a made-up confidence percentage, and leaves the benchmark outcome null until actual measurements exist.
+
+Normalization prevents mismatched evidence: a relevant-query link must reference both an index and a query within the same recommendation. Composite foreign keys enforce that scope in PostgreSQL. One transaction saves all the children, so failure after staging the header/query rows cannot leave a partial recommendation. Tests exercise these constraints and rollback against the real database.
+
+SQL export is text, not execution. Quoted identifiers preserve names containing quotes, spaces and semicolons as identifiers; tests parse the output into exactly the intended CREATE INDEX statement. The export uses the frozen proposal and still needs human review against current schema, space and locking conditions. Nothing in M8 builds a physical index or runs a benchmark.

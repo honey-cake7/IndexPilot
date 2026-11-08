@@ -97,3 +97,15 @@ The budget applies to additional hypothetical bytes, not existing indexes or gua
 ## D024 — Fresh verification and atomic optimization history
 
 M7 extends the evaluator with bounded per-run cache capacity and an explicit refresh call. The final set is replanned without a cache hit; budget/regressions/positive gain must pass and cost/size drift from the accepted trial fails the run rather than preserving stale claims. One metadata transaction saves normalized evaluation evidence, optimizer outcomes, selected order and foreign-keyed trial choices. A real induced membership constraint failure verified full rollback. Failed/unavailable searches save safe evaluation outcomes without partial selections. Rich recommendation artifacts/explanations remain M8 work.
+
+## D025 — Metadata-only, versioned recommendation snapshots
+
+M8 freezes completed optimization evidence without reconnecting to the target. One recommendation per optimization is created transactionally, with bounded row-lock serialization for duplicate requests. Selected definitions, settings, source context, raw plans, observation times and deterministic explanation metrics are copied into normalized scoped rows. No update/delete endpoint rewrites history. Source FKs retain provenance, while later source edits do not alter the snapshot. Current target validity is explicitly unverified; this is not protection against a privileged metadata administrator changing stored rows.
+
+## D026 — Separate final query contributions from index marginals
+
+Query contribution is frequency times baseline-minus-final root cost, expressed relative to the original workload baseline. It can be negative for regressions and is undefined as a percentage over zero. Index benefit instead records the actual selection-step marginal read/objective change with its trial link. Never independently attribute the final total to every index. Missing statistics, unavailable ANALYZE timestamps, unused final indexes, greedy limits and unmeasured runtime/write effects remain explicit. Evidence level is qualitative planner_estimate, not an invented confidence probability.
+
+## D027 — Quoted SQL is a separate, non-executing artifact
+
+At snapshot creation M8 rebuilds index SQL from saved structure/catalog context and checks signature/definition agreement. Only selected frozen commands are exported through JSON or a plain SQL download, with review warnings. Hypothetical names/OIDs are not deployment identities. No arbitrary DDL request or production execution route is added. Empty selections contain no commands; physical benchmarking remains M9 and requires an explicitly isolated target and confirmation.

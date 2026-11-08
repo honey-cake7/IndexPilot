@@ -1,6 +1,6 @@
 # Metadata database design
 
-Status: migrations 0001–0005 implement targets, workloads, statistics, plans and candidate batches/evidence. M6 migration 0006 adds evaluations; M7 migration 0007 adds optimization runs, candidate outcomes/selection order and trial choices linked to evaluated sets. Recommendation artifacts, benchmarks and reports remain planned. Demo business data never belongs in metadata.
+Status: migrations 0001–0005 implement targets, workloads, statistics, plans and candidates. M6–M7 add evaluations and optimization history. M8 migration 0008 adds recommendation snapshots, selected indexes, query/plan explanations and scoped relevance links. Benchmarks and reports remain planned. Demo business rows never belong in metadata.
 
 ```mermaid
 erDiagram
@@ -34,15 +34,21 @@ erDiagram
     optimization_run ||--o{ optimization_trial : searches
     index_evaluation ||--o{ optimization_trial : evidence
     index_candidate ||--o{ optimization_trial : added
-    analysis_run ||--o| recommendation_set : produces
+    optimization_run ||--o| recommendation_set : freezes
     recommendation_set ||--o{ recommendation_set_index : selects
     index_candidate ||--o{ recommendation_set_index : chosen
+    optimization_trial ||--o{ recommendation_set_index : selection_evidence
+    recommendation_set ||--o{ recommendation_query : freezes
+    plan_analysis ||--o{ recommendation_query : source
+    evaluation_query ||--o{ recommendation_query : context
+    recommendation_set_index ||--o{ recommendation_index_query : relevant_to
+    recommendation_query ||--o{ recommendation_index_query : supports
     recommendation_set ||--o{ benchmark_run : validates
     benchmark_run ||--o{ benchmark_measurement : samples
     analysis_run ||--o{ saved_report : exports
 ```
 
-Every entity has a primary key (UUID where externally addressed; bounded integer IDs are acceptable for local child rows), creation time and appropriate foreign keys. Use timezone-aware timestamps, BIGINT bytes/counters/query IDs, finite nonnegative costs and positive finite frequencies. PostgreSQL query IDs can be signed; do not impose a positive queryid constraint.
+Every entity has a primary key (UUID where externally addressed, composite keys for scoped membership) and appropriate foreign keys. Parent records supply creation times for their child evidence. Use timezone-aware timestamps, BIGINT bytes/counters/query IDs, finite nonnegative costs and positive finite frequencies. PostgreSQL query IDs can be signed; do not impose a positive queryid constraint.
 
 | Entity | Main content and constraints |
 | --- | --- |
@@ -63,8 +69,10 @@ Every entity has a primary key (UUID where externally addressed; bounded integer
 | optimization_run | Unique evaluation-run FK, final-set FK, options and structured score/stop summary, creation time. |
 | optimization_candidate | Composite run/candidate PK; selected flag, reason and unique nullable selection order; selected rows require order 1–32. |
 | optimization_trial | Run/evaluated-set/added-candidate FKs, step 1–32, chosen flag, reason and score metrics; unique run/step/added candidate and at most one chosen trial per step. |
-| recommendation_set | Unique analysis FK, selected evaluation FK, baseline evaluation FK, budget, heuristic penalty settings, stop reason and warning summary. |
-| recommendation_set_index | Composite recommendation/candidate PK; selection order and marginal trial reference. Prevent references to another analysis. |
+| recommendation_set | Unique optimization FK; explanation version, frozen source provenance/options, objective/stop summary, warnings and creation time. |
+| recommendation_set_index | Composite recommendation/candidate PK; unique selection order/source trial, definition, positive estimated bytes, marginal explanation and quoted deployment SQL. |
+| recommendation_query | Composite recommendation/source-plan PK, unique frozen evaluation-query link, frequency, original SQL, resolved context, raw baseline/final plans and explanation metrics. |
+| recommendation_index_query | Composite recommendation/candidate/source-plan PK; two composite FKs enforce index/query membership in that same recommendation; frozen proposal evidence and final-use flag. |
 | benchmark_run | Recommendation FK, isolated target identity, job status, dataset seed/scale, versions, conditions and error code. |
 | benchmark_measurement | Run FK, configuration arm, repetition, scenario/operation, sample or aggregate value, explicit metric/unit and sampling method. |
 | saved_report | Analysis FK, report format/version and immutable rendered artifact or safe managed artifact reference; no arbitrary filesystem path. |
@@ -114,3 +122,11 @@ Database constraints prevent duplicate trial additions/selection positions and m
 A single outer metadata transaction contains both M6 evidence and M7 history writes. A real duplicate-membership failure during the second part rolled back the entire new evaluation, leaving the prior saved run unchanged. Planning failures instead save a separate safe failed/unavailable evaluation with no optimization selection or partial trial plans. There is no long-running optimizer job state.
 
 Migration 0007 upgrade → downgrade to 0006 → upgrade passed on the separate disposable metadata database, with no schema drift. The main database was only upgraded. M8 will extend the saved evidence into richer recommendation explanations and artifacts; M7 does not claim that work is complete.
+
+## M8 implementation details
+
+One recommendation_set freezes one completed optimization. It copies selected membership/order, index structure, relevant-query proposal evidence, source query context, raw plans, settings, versions, observed statistics timestamps and explanation metrics. Source FKs preserve provenance, while copied values prevent later source edits from rewriting the saved recommendation. No update/delete API is provided; privileged metadata administrators can still alter database rows directly. Raw evidence/explanation metrics are frozen; compatible plan parsing/display uses the reader version.
+
+Recommendation_set_index separates reusable candidate identity from this recommendation's selection-step evidence. Recommendation_query separates final whole-set query contributions from index attribution. Recommendation_index_query stores many-to-many relevance with composite scope FKs, preventing a query from a different recommendation being attached accidentally. Positive size/order/frequency checks and unique source/order constraints protect saved records. Service checks enforce source optimization/batch/trial consistency beyond those FKs.
+
+Header and child rows commit in one metadata transaction. Creation locks only the source optimization to serialize duplicate snapshots, returning the existing record on repeats. Reads use the frozen rows and do not reconnect to the target or source optimizer content. Tests demonstrated source-mutation independence, atomic rollback after partial staging and valid use with one pool connection. Migration 0008 upgrade → downgrade to 0007 → upgrade passed on the separate disposable metadata database; retained main data was only upgraded. Benchmarks/reports remain future entities in the diagram.

@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M1–M5 provisioning, backend, workloads, plan analysis and candidate generation are implemented. M6 adds HypoPG evaluation; M7 adds pure workload-aware greedy selection and normalized optimization history. Recommendation explanations/artifacts, benchmarks and the dashboard remain planned. Ingestion alone never authorizes planning; plan/evaluation/optimization paths apply a separate catalog safety policy.
+Status: M1–M5 provisioning, backend, workloads, plans and candidates are implemented. M6–M7 add HypoPG evaluation and workload-aware selection; M8 adds frozen recommendation explanations and separate SQL artifacts. Benchmarks and the dashboard remain planned. Ingestion alone never authorizes planning; plan/evaluation/optimization paths apply a separate catalog safety policy.
 
 ## Boundaries and flow
 
@@ -58,7 +58,11 @@ M6 revalidates saved query/catalog bindings and structurally recompiles candidat
 
 M7's optimizer/greedy.py depends on an evaluator contract, typed models and pure objective arithmetic, not FastAPI or SQL execution. It evaluates each selected-set-plus-candidate alternative, scores frequency-weighted read cost plus optional heuristic write penalty, enforces actual combined estimated bytes/regression limits and records deterministic choices. Rounds must fit the evaluation allowance completely, with a reserved final uncached EXPLAIN. The API service holds the M6 session for the whole search; its private cache capacity follows the configured evaluation bound. A final cost/storage drift or failed database operation publishes no partial selection. Successful evaluation evidence and foreign-keyed optimization history commit together in one metadata transaction. See [OPTIMIZATION_ALGORITHM.md](OPTIMIZATION_ALGORITHM.md).
 
-## API boundaries (planned)
+## Recommendation snapshots
+
+M8 creates versioned explanations from completed M7 evidence using metadata only. It structurally rebuilds candidate SQL against frozen catalog context, checks source consistency and saves selected membership, query/plan snapshots, provenance and scoped relevance links in one transaction. Query contributions describe the final whole set; index benefits describe their original selection step. Write overhead is qualitative/heuristic, with no fabricated runtime or confidence metric. GET reads the snapshot independently of current source/target state. Repeat creation reuses one snapshot per optimization, with bounded row-lock serialization. Separate JSON/SQL-download routes export quoted commands without executing them. See [RECOMMENDATIONS.md](RECOMMENDATIONS.md).
+
+## API boundaries
 
 Version routes under `/api/v1`. Health is separate. Connections expose sanitized capability data; workloads expose manual ingestion/snapshots; plans/schema/candidates/evaluations expose inspection; optimizations persist complete analyses; recommendations/history/reports retrieve saved evidence. Benchmarks expose explicit creation confirmation and a job status resource, with queued/running/completed/failed states.
 
