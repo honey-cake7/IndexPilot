@@ -55,3 +55,13 @@ Statistics are sampled summaries. A negative n_distinct means a fraction of esti
 EXPLAIN produces a tree. A Sort can have a Hash Join child, which has scan children. `plans/parser.py` keeps that structure and conditions instead of treating every scan as an independent query. The root total includes child work; adding every cost would double-count. Index-only scans may still visit the heap for visibility checks. A sequential scan on a small table or for many matching rows can be sensible.
 
 The explicit plan endpoint uses EXPLAIN without ANALYZE, so its output is not measured latency. PostgreSQL can still evaluate constant expressions during planning: `SELECT 1/0` fails even without running a workload. Read-only settings therefore need a real SQL/catalog safety policy, not just a check that the text starts with SELECT. Tests install deliberately failing functions in isolated fixture objects and verify they are rejected before planning.
+
+## M5: column order, duplication and bounded search
+
+For `WHERE user_id=101 AND created_at>=... ORDER BY created_at DESC`, fixing the user first groups that user's date entries together. The generator can propose user/date keys with the requested date ordering. It also keeps simpler alternatives because only the planner evaluation can determine whether the wider index earns its storage/write cost. PostgreSQL 18 can use skip scans in some cases, so equality-first is a useful initial heuristic rather than a universal rule.
+
+Two indexes listing the same columns may differ in key order, NULL placement, collation, operator class, predicate or INCLUDE payload. A partial index on paid orders cannot automatically replace a full index for every order. `candidates/deduplication.py` rejects exact usable duplicates, distinguishes unique-index coverage, and warns about overlaps without assuming every prefix makes a smaller index useless.
+
+Candidate generation is not optimization. The generator knows which query patterns motivated each definition, but has not measured its hypothetical cost, storage or write penalty. Combinations are bounded to avoid factorial search. M6 will ask PostgreSQL about those alternatives; M7 will consider the whole frequency-weighted workload.
+
+The evidence migration demonstrates normalization: one candidate can help several query patterns, and one query can motivate several candidates. A membership table with foreign keys expresses that relationship. Preserving the prototype batch through migration verifies that schema evolution does not require throwing away collected work.

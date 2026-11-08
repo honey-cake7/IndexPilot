@@ -6,7 +6,7 @@ IndexPilot is being built to answer: **which combination of indexes helps this w
 
 ## Current status
 
-Milestones 0–4: verified PostgreSQL environment, saved workloads, reset-aware statistics collection, catalog inspection and persisted EXPLAIN JSON analysis. Explicit plan requests resolve aliases/columns and apply a conservative safety policy before obtaining estimated plans. Recommendations and the dashboard are not implemented yet. There are no performance benchmark results. See [progress](docs/PROGRESS.md).
+Milestones 0–5: verified PostgreSQL environment, saved workloads, statistics collection, catalog-resolved EXPLAIN analysis and bounded B-Tree candidate generation. Candidate batches retain source-query evidence and existing-index duplicate/overlap decisions. Benefits, storage estimates, workload optimization and the dashboard are not implemented yet. There are no performance benchmark results. See [progress](docs/PROGRESS.md).
 
 ## Architecture and planned stack
 
@@ -58,6 +58,7 @@ Ordinary analysis will use EXPLAIN without ANALYZE. Hypothetical planner cost is
 - [Executed development setup and test commands](docs/DEVELOPMENT.md)
 - [Workload input, parameters, snapshots and interval semantics](docs/WORKLOADS.md)
 - [Schema inspection, SQL resolution and estimated plans](docs/PLAN_ANALYSIS.md)
+- [B-Tree candidate generation, bounds and duplicate detection](docs/CANDIDATES.md)
 - [Verified progress and commit records](docs/PROGRESS.md)
 - [Architecture and security boundaries](docs/ARCHITECTURE.md)
 - [Metadata design and ER diagram](docs/DATABASE_DESIGN.md)
@@ -68,6 +69,6 @@ Ordinary analysis will use EXPLAIN without ANALYZE. Hypothetical planner cost is
 
 ## Limitations
 
-The API supports only the configured local demo target. Ingestion remains `syntax_only`; explicit plan requests validate catalog meaning and obtain estimates without ANALYZE. Planning supports a narrow subset of ordinary heap tables and built-in expressions; views, RLS, custom types and unsupported dependencies are rejected. Collected parameter values must be supplied explicitly. No index recommendation or performance benchmark feature exists yet. Planner costs are not milliseconds.
+The API supports only the configured local demo target and a narrow SQL/catalog subset. Ingestion remains `syntax_only`; explicit plan requests obtain estimates without ANALYZE. Candidates are unevaluated proposals with null benefit/size fields, not proven recommendations. Hypothetical cost evaluation, workload optimization and physical benchmarking are still pending. Planner costs are not milliseconds.
 
 The project relies on PostgreSQL, HypoPG and pglast rather than an LLM to determine index validity. Technical sources are linked in the relevant design documents. AI-assisted contributions must meet the same review, test and evidence standards as other contributions.

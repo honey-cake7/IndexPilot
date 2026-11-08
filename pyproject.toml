@@ -33,7 +33,7 @@ packages = ["backend/indexpilot"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "--tb=short"
+addopts = "--tb=short --import-mode=importlib"
 markers = ["integration: requires the explicitly configured local PostgreSQL environment"]
 
 [tool.ruff]

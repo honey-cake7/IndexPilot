@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M1 provisioning, M2 backend/connectivity, M3 ingestion/collection, and M4 catalog resolution/estimated plan analysis are implemented. Optimization, benchmarks and the dashboard remain planned. Ingestion alone never authorizes planning; the explicit plan path applies a separate catalog safety policy.
+Status: M1–M4 provisioning, backend, workload collection and estimated plan analysis are implemented, followed by M5's candidate generator and persisted duplicate/overlap decisions. HypoPG evaluation, optimization, benchmarks and the dashboard remain planned. Ingestion alone never authorizes planning; the plan path applies a separate catalog safety policy.
 
 ## Boundaries and flow
 
@@ -51,6 +51,8 @@ M4 implements this boundary with permanent heap-table/type checks, dependency gu
 - Benchmark: fixed allowlisted disposable target and saved recommendation IDs; no arbitrary submitted DDL; immutable measurement conditions and individual samples where percentiles are reported.
 
 Cache keys include target identity, schema/statistics snapshot, representative query/bindings, relevant planner settings and candidate-set signature. Do not reuse across changed schemas or statistics. Bound work by candidates, queries, combinations and timeouts; report partial search explicitly.
+
+M5 consumes saved resolved plans, refreshes referenced table/index metadata and rejects stale identities/types. Its pure generator produces bounded B-Tree alternatives and deterministic quoted DDL; an API service persists batches, source membership, decisions and normalized evidence. Candidate priority uses structural heuristics only. No hypothetical or physical indexes are created by the generation endpoint. See [CANDIDATES.md](CANDIDATES.md).
 
 ## API boundaries (planned)
 

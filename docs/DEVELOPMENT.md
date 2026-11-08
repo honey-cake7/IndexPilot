@@ -117,3 +117,11 @@ The CLI prints saved workload/snapshot IDs and the number of usable deltas; the 
 Run `uv run alembic upgrade head` to apply migration 0003 and restart the backend. Readiness now expects 0003. GET `/api/v1/schema` and `/api/v1/schema/table?table_name=orders` inspect real catalogs. POST `/api/v1/plans` accepts the same SQL/frequency/parameters shape as one manual QueryInput. POST `/api/v1/query-scenarios/{id}/plan` analyzes a saved representative. GET `/api/v1/plans/{id}` reloads the saved evidence.
 
 See [PLAN_ANALYSIS.md](PLAN_ANALYSIS.md) for an executable PowerShell request, schema configuration, safety limits and response semantics. There is no ANALYZE switch, arbitrary target or index-creation endpoint. The full M4 suite passed 166 tests; fixture indexes exist only on isolated test-owned tables and are removed with their unique schemas afterward. Planner switches used within tests exercise node parsing, not performance findings.
+
+## Candidate generation (M5)
+
+Run `uv sync --locked`, `uv run alembic upgrade head` and restart the backend. Metadata now expects revision 0005: migration 0004 adds candidate batches/decisions; 0005 normalizes evidence while preserving saved data. The full migrations were reversed/reapplied on the disposable metadata database, and a populated evidence round trip preserved the saved batch exactly.
+
+POST `/api/v1/candidates` with `{ "plan_ids": ["<saved-plan-UUID>"], "max_columns": 3, "max_candidates": 32 }`. GET `/api/v1/candidates/{id}` reloads decisions; GET `/api/v1/candidates` lists batches. [CANDIDATES.md](CANDIDATES.md) contains a complete executable request and the duplicate/overlap rules. Generation does not require HypoPG or create real indexes. Benefits and size fields are null until evaluation exists.
+
+M5 verification passed 204 tests (131 unit, 73 PostgreSQL/API integration). Additional tests validate generated SQL with session-local HypoPG and reset it; they do not measure benefit. Fixture index creation and schema changes affect only isolated test-owned tables. Pytest importlib mode keeps matching unit/integration test module names independent.

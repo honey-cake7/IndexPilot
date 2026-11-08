@@ -61,3 +61,15 @@ A real check showed pglast fingerprints ignore schemas. M4 combines structural i
 ## D015 — Statistics visibility and index semantics
 
 Default inspection omits histogram/common-value text; opt-in values are formatted only for supported built-in column types with access. Index metadata retains expressions/predicates, key versus INCLUDE columns, opclasses, collations and sort/null flags for later accurate deduplication. Approximate uniform selectivity and cumulative usage remain labeled; neither is sufficient justification for an index recommendation or removal.
+
+## D016 — Bounded candidates before hypothetical evaluation
+
+M5 generates singleton/composite B-Tree alternatives from direct conjunctions, inner equality joins and compatible ordering. It caps width at three, proposed count at 32, the working pool at 512 and attempts at 4096; limits and structural priority are explicit. Equality-first order is a heuristic, not a theorem that other orders or PostgreSQL 18 skip scans cannot work. No benefit/size numbers are fabricated; M6 evaluates the candidates.
+
+## D017 — Structural duplication and conservative overlap
+
+Exact suppression compares live/ready/valid ordinary index signatures, including opclasses, collations and ordering. Matching unique indexes use a separate coverage reason. Partial/expression/covering, longer-prefix and backward-order relationships are not silently treated as identical general indexes. Current indexes are refreshed and stale source identities/types rejected. Identifier quoting and verified catalog opclasses produce deterministic DDL.
+
+## D018 — Normalized candidate evidence with data-preserving migration
+
+The working M5 prototype initially stored evidence alongside definitions. Migration 0005 preserves it while splitting candidate/plan/alias/reason relationships into a foreign-keyed table, supporting later query explanations without dangling plan IDs. A saved prototype batch survived downgrade/re-upgrade unchanged. Candidate definitions remain structured snapshots; evidence relationships are relational. Pytest now uses importlib mode so unit/integration modules can share meaningful basenames without import collisions.

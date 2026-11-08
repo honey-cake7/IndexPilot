@@ -146,3 +146,61 @@ class PlanAnalysis(Base):
     planner_settings: Mapped[dict] = mapped_column(JSONB)
     root_node_type: Mapped[str] = mapped_column(String(80))
     total_cost: Mapped[float | None] = mapped_column(Double)
+
+
+class CandidateBatch(Base):
+    __tablename__ = "candidate_batch"
+    __table_args__ = (
+        CheckConstraint("attempts >= 0 AND unique_considered >= 0", name="candidate_batch_counts"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    database_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("monitored_database.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    catalog_observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    options: Mapped[dict] = mapped_column(JSONB)
+    algorithm_version: Mapped[str] = mapped_column(String(32))
+    attempts: Mapped[int] = mapped_column(Integer)
+    unique_considered: Mapped[int] = mapped_column(Integer)
+    search_truncated: Mapped[bool]
+    warnings: Mapped[list] = mapped_column(JSONB)
+
+
+class CandidateBatchSource(Base):
+    __tablename__ = "candidate_batch_source"
+    batch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("candidate_batch.id"), primary_key=True)
+    plan_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("plan_analysis.id"), primary_key=True)
+
+
+class IndexCandidate(Base):
+    __tablename__ = "index_candidate"
+    __table_args__ = (
+        UniqueConstraint("batch_id", "signature", name="candidate_signature"),
+        CheckConstraint(
+            "(status='proposed' AND rejection_reason IS NULL) OR "
+            "(status='rejected' AND rejection_reason IS NOT NULL)",
+            name="candidate_status",
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    batch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("candidate_batch.id"), index=True)
+    signature: Mapped[str] = mapped_column(String(64))
+    definition: Mapped[dict] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(16))
+    rejection_reason: Mapped[str | None] = mapped_column(String(64))
+    existing_indexes: Mapped[list] = mapped_column(JSONB)
+    warnings: Mapped[list] = mapped_column(JSONB)
+
+
+class IndexCandidateEvidence(Base):
+    __tablename__ = "index_candidate_evidence"
+    candidate_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("index_candidate.id"), primary_key=True
+    )
+    plan_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("plan_analysis.id"), primary_key=True, index=True
+    )
+    query_alias: Mapped[str] = mapped_column(String(63), primary_key=True)
+    reason: Mapped[str] = mapped_column(String(32), primary_key=True)
+    explanation: Mapped[str] = mapped_column(Text)

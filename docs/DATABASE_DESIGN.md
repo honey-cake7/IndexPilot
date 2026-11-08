@@ -1,6 +1,6 @@
 # Metadata database design
 
-Status: migrations 0001–0002 implement target/workload/scenario/statistics entities. M4 migration 0003 adds `plan_analysis`. Evaluation, recommendation and benchmark entities remain planned. Demo business data never belongs in metadata.
+Status: migrations 0001–0003 implement targets, workloads, statistics and plan analysis. M5 migrations 0004–0005 add candidate batches, source membership, decisions and normalized evidence. Evaluation/recommendation/benchmark entities remain planned. Demo business data never belongs in metadata.
 
 ```mermaid
 erDiagram
@@ -10,6 +10,12 @@ erDiagram
     query_pattern ||--o{ query_scenario : parameterizes
     monitored_database ||--o{ plan_analysis : inspected
     query_scenario o|--o{ plan_analysis : optionally_planned
+    monitored_database ||--o{ candidate_batch : generates
+    candidate_batch ||--o{ candidate_batch_source : contains
+    plan_analysis ||--o{ candidate_batch_source : contributes
+    candidate_batch ||--o{ index_candidate : considers
+    index_candidate ||--o{ index_candidate_evidence : justified_by
+    plan_analysis ||--o{ index_candidate_evidence : supplies
     workload_snapshot ||--o{ query_statistic : contains
     query_pattern ||--o{ query_statistic : measured
     workload ||--o{ analysis_run : analyzed
@@ -69,3 +75,9 @@ Migration 0002 was upgraded, downgraded to 0001 and upgraded again on a separate
 `plan_analysis` references the configured target and optionally a saved scenario; ad hoc plans need no artificial workload row. It stores original SQL, frequency, source capture time/version, resolved query/catalog context, raw EXPLAIN JSON, selected settings and extracted root summary. Cost/frequency CHECK constraints reject invalid values; target/scenario/time indexes support retrieval. JSON represents immutable variable-shaped evidence, while identities and references remain relational. The later `execution_plan` evaluation relationship is still proposed; M4 does not pretend hypothetical evaluations exist yet.
 
 Migration 0003 upgrade → downgrade to 0002 → upgrade passed on the separate disposable metadata database, with no schema drift. Historical plan retrieval uses stored catalog context, not the target's latest mutable schema/statistics.
+
+## M5 implementation details
+
+`candidate_batch` stores the configured target, capture timestamps, requested limits, algorithm version, counts, truncation status and warnings. `candidate_batch_source` links each source plan once. `index_candidate` stores one structured definition/signature per batch with a constrained proposed/rejected status and reason. `index_candidate_evidence` uses a composite candidate/plan/alias/reason key, preserving many-to-many query provenance with foreign keys. Variable key signatures remain immutable structured JSON; source relationships are not hidden in delimited strings.
+
+Migration 0005 converts the endpoint prototype's JSON evidence into normalized rows. Its downgrade reconstructs that evidence without dropping candidate/batch records; a full data-bearing round trip was checked. The existing analysis_run/index_evaluation relationships in the design diagram remain proposed and are not claimed as implemented.

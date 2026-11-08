@@ -1,6 +1,6 @@
 # Workload-aware optimization
 
-Status: algorithm specification at M0; no optimizer or measured results yet.
+Status: algorithm specification at M0; no optimizer or measured results yet. M5 now supplies bounded [candidate batches](CANDIDATES.md), but its structural priority is not this workload-cost optimization algorithm. M6 must first provide real set evaluations.
 
 For index set S, let `c(q, S)` be PostgreSQL's estimated root total plan cost for a representative query and `f(q)` its execution frequency. Define:
 
