@@ -85,3 +85,15 @@ Live tests show rollback leaves hypothetical indexes in session memory. Always r
 ## D021 — Separate immutable evaluation evidence
 
 M6 migration 0006 normalizes run/query/set/member/plan rows and records outcomes atomically after synchronous execution. Generation snapshots remain unchanged; evaluation evidence has its own identity. Failed/unavailable runs publish no partial comparisons, and missing costs/sizes are null rather than zero. Optional size access can be absent while cost planning remains usable. Unknown bytes cannot justify a future hard-budget selection. No measured speedup, write penalty, optimizer decision or physical deployment is inferred from these estimates.
+
+## D022 — Complete greedy rounds with deterministic marginal scoring
+
+M7 scores every selected-set-plus-candidate trial using freshly available whole-set estimates: frequency-weighted root cost plus optional heuristic write penalty. Rank positive feasible gain per additional estimated byte, then absolute gain, canonical signature and UUID. Query regression limits compare to the original baseline. Complete each round before choosing; reserve one final uncached evaluation, and stop before a round that cannot fit the allowance. This prevents evaluation-limit order bias. Greedy can miss complementary pairs; optional exhaustive search remains deferred.
+
+## D023 — Estimated-byte budget and explicit heuristic write units
+
+The budget applies to additional hypothetical bytes, not existing indexes or guaranteed physical disk consumption. Every selected set requires known positive member estimates and an actual complete-set total within budget. Unknown, zero/negative member sizes and nonpositive incremental bytes cannot earn a free selection. Default write penalty is zero; user weights default to one and share a declared scenario/frequency basis. The penalty is expressed in weighted planner-cost units per MiB, never measured write latency. Read improvement and penalized objective are separate fields.
+
+## D024 — Fresh verification and atomic optimization history
+
+M7 extends the evaluator with bounded per-run cache capacity and an explicit refresh call. The final set is replanned without a cache hit; budget/regressions/positive gain must pass and cost/size drift from the accepted trial fails the run rather than preserving stale claims. One metadata transaction saves normalized evaluation evidence, optimizer outcomes, selected order and foreign-keyed trial choices. A real induced membership constraint failure verified full rollback. Failed/unavailable searches save safe evaluation outcomes without partial selections. Rich recommendation artifacts/explanations remain M8 work.

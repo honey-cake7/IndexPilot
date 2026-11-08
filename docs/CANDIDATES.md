@@ -1,6 +1,6 @@
 # B-Tree index candidate generation
 
-Implemented in M5. The generator proposes bounded, explainable index definitions from M4's resolved query features. It refreshes table/index metadata, rejects exact existing duplicates, saves decisions and links every proposal to source plans. M6 now provides separate [HypoPG evaluation runs](HYPOTHETICAL_EVALUATION.md) with estimated cost/bytes. Generation responses deliberately retain their immutable `not_evaluated` status and null benefit/size fields; they do not summarize later runs. Write penalties and workload selection belong to M7.
+Implemented in M5. The generator proposes bounded, explainable index definitions from M4's resolved query features. It refreshes table/index metadata, rejects exact existing duplicates, saves decisions and links every proposal to source plans. M6 provides separate [HypoPG evaluation runs](HYPOTHETICAL_EVALUATION.md) with estimated cost/bytes, and M7 provides [storage-budget selection](OPTIMIZATION_ALGORITHM.md) with optional heuristic write penalties. Generation responses deliberately retain their immutable `not_evaluated` status and null benefit/size fields; they do not summarize later runs.
 
 ## Try the working API
 

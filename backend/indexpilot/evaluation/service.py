@@ -22,7 +22,7 @@ from indexpilot.metadata.targets import ensure_demo_target
 from indexpilot.sql.models import SQLAnalysis
 
 
-def _load_request(engine, settings, body):
+def load_request(engine, settings, body):
     with Session(engine) as db, db.begin():
         batch = db.get(CandidateBatch, body.batch_id)
         if batch is None:
@@ -79,7 +79,7 @@ def _load_request(engine, settings, body):
 
 
 def evaluate_batch(engine, settings: Settings, body):
-    sources, stored, groups = _load_request(engine, settings, body)
+    sources, stored, groups = load_request(engine, settings, body)
     context = {
         "policy": "hypopg-sets-v1",
         "planning_budget_seconds": settings.evaluation_timeout_seconds,

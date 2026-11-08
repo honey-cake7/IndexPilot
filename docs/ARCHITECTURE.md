@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M1–M5 provisioning, backend, workloads, plan analysis and candidate generation are implemented. M6 adds dedicated-session HypoPG evaluation with normalized saved plans and estimated bytes. Optimization, benchmarks and the dashboard remain planned. Ingestion alone never authorizes planning; plan/evaluation paths apply a separate catalog safety policy.
+Status: M1–M5 provisioning, backend, workloads, plan analysis and candidate generation are implemented. M6 adds HypoPG evaluation; M7 adds pure workload-aware greedy selection and normalized optimization history. Recommendation explanations/artifacts, benchmarks and the dashboard remain planned. Ingestion alone never authorizes planning; plan/evaluation/optimization paths apply a separate catalog safety policy.
 
 ## Boundaries and flow
 
@@ -55,6 +55,8 @@ M6's cache belongs to one evaluator on one exclusively held repeatable-read conn
 M5 consumes saved resolved plans, refreshes referenced table/index metadata and rejects stale identities/types. Its pure generator produces bounded B-Tree alternatives and deterministic quoted DDL; an API service persists batches, source membership, decisions and normalized evidence. Candidate priority uses structural heuristics only. No hypothetical or physical indexes are created by the generation endpoint. See [CANDIDATES.md](CANDIDATES.md).
 
 M6 revalidates saved query/catalog bindings and structurally recompiles candidate DDL. It obtains a fresh empty-set baseline, then resets, creates each complete set, EXPLAINs every source query, reads optional HypoPG sizes and verifies cleanup. Rollback alone does not erase HypoPG memory; both hypothetical and hidden-index state are explicitly cleared. Cleanup failure closes the physical connection. Synchronous runs are atomically saved only after completion/failure/unavailability, with no partial successful comparisons on failure. See [HYPOTHETICAL_EVALUATION.md](HYPOTHETICAL_EVALUATION.md).
+
+M7's optimizer/greedy.py depends on an evaluator contract, typed models and pure objective arithmetic, not FastAPI or SQL execution. It evaluates each selected-set-plus-candidate alternative, scores frequency-weighted read cost plus optional heuristic write penalty, enforces actual combined estimated bytes/regression limits and records deterministic choices. Rounds must fit the evaluation allowance completely, with a reserved final uncached EXPLAIN. The API service holds the M6 session for the whole search; its private cache capacity follows the configured evaluation bound. A final cost/storage drift or failed database operation publishes no partial selection. Successful evaluation evidence and foreign-keyed optimization history commit together in one metadata transaction. See [OPTIMIZATION_ALGORITHM.md](OPTIMIZATION_ALGORITHM.md).
 
 ## API boundaries (planned)
 

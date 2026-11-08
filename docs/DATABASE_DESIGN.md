@@ -1,6 +1,6 @@
 # Metadata database design
 
-Status: migrations 0001–0005 implement targets, workloads, statistics, plans and candidate batches/evidence. M6 migration 0006 adds evaluation runs, frozen source queries, evaluated sets, members and raw plans. Analysis/selection, recommendations, benchmarks and reports remain planned. Demo business data never belongs in metadata.
+Status: migrations 0001–0005 implement targets, workloads, statistics, plans and candidate batches/evidence. M6 migration 0006 adds evaluations; M7 migration 0007 adds optimization runs, candidate outcomes/selection order and trial choices linked to evaluated sets. Recommendation artifacts, benchmarks and reports remain planned. Demo business data never belongs in metadata.
 
 ```mermaid
 erDiagram
@@ -27,6 +27,13 @@ erDiagram
     index_candidate ||--o{ evaluation_member : participates
     index_evaluation ||--o{ evaluation_plan : records
     evaluation_query ||--o{ evaluation_plan : replanned
+    evaluation_run ||--o| optimization_run : optionally_optimized
+    index_evaluation ||--o{ optimization_run : final_set
+    optimization_run ||--o{ optimization_candidate : decides
+    index_candidate ||--o{ optimization_candidate : considered
+    optimization_run ||--o{ optimization_trial : searches
+    index_evaluation ||--o{ optimization_trial : evidence
+    index_candidate ||--o{ optimization_trial : added
     analysis_run ||--o| recommendation_set : produces
     recommendation_set ||--o{ recommendation_set_index : selects
     index_candidate ||--o{ recommendation_set_index : chosen
@@ -53,6 +60,9 @@ Every entity has a primary key (UUID where externally addressed; bounded integer
 | index_evaluation | Run FK, canonical set signature, optional weighted planner cost/bytes and warnings; unique set per run and at most one baseline. |
 | evaluation_member | Composite PK of evaluation/candidate FKs; hypothetical OID/name and optional positive estimated bytes. |
 | evaluation_plan | Evaluation/query FKs, raw JSON and optional nonnegative finite root cost; unique pair. Service pairs queries/sets from the same run. Empty-set evaluation supplies fresh baseline plans. |
+| optimization_run | Unique evaluation-run FK, final-set FK, options and structured score/stop summary, creation time. |
+| optimization_candidate | Composite run/candidate PK; selected flag, reason and unique nullable selection order; selected rows require order 1–32. |
+| optimization_trial | Run/evaluated-set/added-candidate FKs, step 1–32, chosen flag, reason and score metrics; unique run/step/added candidate and at most one chosen trial per step. |
 | recommendation_set | Unique analysis FK, selected evaluation FK, baseline evaluation FK, budget, heuristic penalty settings, stop reason and warning summary. |
 | recommendation_set_index | Composite recommendation/candidate PK; selection order and marginal trial reference. Prevent references to another analysis. |
 | benchmark_run | Recommendation FK, isolated target identity, job status, dataset seed/scale, versions, conditions and error code. |
@@ -94,3 +104,13 @@ An evaluation_run belongs to one candidate_batch. It freezes representative quer
 Runs are saved atomically after synchronous evaluation, including safe failed/unavailable records; failures publish no partial comparisons. There is no persistent running-job state in M6. Retrieval uses frozen evidence without connecting to the target. Query literals, plans and statistics remain sensitive local metadata. Hypothetical identifiers are historical session names, never physical deployment identifiers.
 
 Migration 0006 upgrade, downgrade to 0005 and re-upgrade passed on the separate disposable metadata database; Alembic reported no schema drift. The main metadata database was upgraded to 0006 without downgrading its saved data.
+
+## M7 implementation details
+
+`optimization_run` references a complete M6 evaluation history and its fresh-verified final set. `optimization_candidate` normalizes outcomes and selection order rather than hiding selected membership in a JSON array. `optimization_trial` links each considered addition to its complete evaluated set. Raw plans, hypothetical member bytes and frozen query context are reused through M6's relationships; per-query trial changes can be reconstructed against that run's baseline. Settings and variable score summaries remain structured JSON, while identities and membership stay relational.
+
+Database constraints prevent duplicate trial additions/selection positions and multiple chosen alternatives at one step. Explicit non-null validation in the selected-position CHECK avoids PostgreSQL's rule that a NULL CHECK result passes. Service validation enforces same-batch/same-evaluation scope; foreign keys alone do not prove cross-row scope. Selected order is preserved; history lists trial rows in stable step/UUID order.
+
+A single outer metadata transaction contains both M6 evidence and M7 history writes. A real duplicate-membership failure during the second part rolled back the entire new evaluation, leaving the prior saved run unchanged. Planning failures instead save a separate safe failed/unavailable evaluation with no optimization selection or partial trial plans. There is no long-running optimizer job state.
+
+Migration 0007 upgrade → downgrade to 0006 → upgrade passed on the separate disposable metadata database, with no schema drift. The main database was only upgraded. M8 will extend the saved evidence into richer recommendation explanations and artifacts; M7 does not claim that work is complete.

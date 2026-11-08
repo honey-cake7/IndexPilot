@@ -50,7 +50,7 @@ def current_settings(connection):
 
 
 class WorkloadEvaluator:
-    def __init__(self, connection, session, queries, candidates, budget):
+    def __init__(self, connection, session, queries, candidates, budget, *, max_sets=65):
         self.connection = connection
         self.session = session
         self.queries = tuple(query.model_copy(deep=True) for query in queries)
@@ -58,22 +58,22 @@ class WorkloadEvaluator:
             identifier: value.model_copy(deep=True) for identifier, value in candidates.items()
         }
         self.budget = budget
-        self.cache = RunCache()
+        self.cache = RunCache(max_sets=max_sets)
         self.settings = current_settings(connection)
         self.failed = False
 
-    def evaluate(self, candidate_ids=frozenset()):
+    def evaluate(self, candidate_ids=frozenset(), *, refresh=False):
         if self.failed:
             raise DomainError(
                 "evaluation_aborted", "This evaluation context failed and must be discarded.", 409
             )
         try:
-            return self._evaluate(candidate_ids)
+            return self._evaluate(candidate_ids, refresh=refresh)
         except BaseException:
             self.failed = True
             raise
 
-    def _evaluate(self, candidate_ids):
+    def _evaluate(self, candidate_ids, *, refresh=False):
         key = frozenset(candidate_ids)
         if key - self.candidates.keys():
             raise DomainError("invalid_candidate_set", "Index set contains unknown candidates.")
@@ -84,7 +84,7 @@ class WorkloadEvaluator:
             )
         self.session.reset()
         cached = self.cache.get(key)
-        if cached is not None:
+        if cached is not None and not refresh:
             return cached
         if key and self.cache.get(frozenset()) is None:
             self.evaluate(frozenset())

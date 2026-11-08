@@ -1,6 +1,6 @@
 # Hypothetical index-set evaluation
 
-Implemented in M6 using PostgreSQL 18 and HypoPG 1.4. The evaluator asks the real planner about individual and combined B-Tree candidate sets without creating physical indexes or executing submitted SELECTs. All costs are **planner units, not milliseconds**; sizes are HypoPG estimates, not measured disk consumption. Storage-budget selection and write penalties belong to M7.
+Implemented in M6 using PostgreSQL 18 and HypoPG 1.4. The evaluator asks the real planner about individual and combined B-Tree candidate sets without creating physical indexes or executing submitted SELECTs. All costs are **planner units, not milliseconds**; sizes are HypoPG estimates, not measured disk consumption. M7 now uses this engine for [storage-budget selection and optional heuristic write penalties](OPTIMIZATION_ALGORITHM.md); the direct evaluation endpoint still only compares requested sets.
 
 ## Run the API
 
@@ -47,7 +47,7 @@ Every ID must identify a proposed candidate in that batch. Up to 64 distinct non
 
 The workload cost is `sum(frequency * root_total_cost)` across all source queries. Do not sum child costs: root totals already include them. Nonfinite, missing or overflowed totals remain unknown. A combined set is planned directly, because overlapping or complementary indexes do not have additive singleton benefits.
 
-Each member's estimated bytes must be positive and known for `storage_complete=true`. An unavailable size function or unsupported estimate yields null, never a free index. Any unknown member makes the whole set's size null; the empty baseline alone legitimately has zero hypothetical bytes. These flags give M7 the information needed to reject unknown storage for automatic hard-budget selection; M6 does not implement that selection.
+Each member's estimated bytes must be positive and known for `storage_complete=true`. An unavailable size function or unsupported estimate yields null, never a free index. Any unknown member makes the whole set's size null; the empty baseline alone legitimately has zero hypothetical bytes. M7 rejects unknown storage for automatic hard-budget selection; this direct evaluation endpoint does not choose a selection.
 
 `context` records the database/OID, server version, backend PID, catalog observation time, selected planner settings and policy/budget. `queries` preserves fresh resolved table/statistics context. These are historical observations, not a promise that a transaction freezes all physical storage, ANALYZE results or concurrent server activity.
 

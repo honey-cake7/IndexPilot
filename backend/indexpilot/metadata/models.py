@@ -299,3 +299,63 @@ class EvaluationPlan(Base):
     query_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("evaluation_query.id"), index=True)
     total_cost: Mapped[float | None] = mapped_column(Double)
     raw_explain: Mapped[list] = mapped_column(JSONB)
+
+
+class OptimizationRun(Base):
+    __tablename__ = "optimization_run"
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    evaluation_run_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("evaluation_run.id"), unique=True
+    )
+    final_evaluation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("index_evaluation.id"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    options: Mapped[dict] = mapped_column(JSONB)
+    summary: Mapped[dict] = mapped_column(JSONB)
+
+
+class OptimizationCandidate(Base):
+    __tablename__ = "optimization_candidate"
+    __table_args__ = (
+        UniqueConstraint("run_id", "selection_order", name="optimization_selection_order"),
+        CheckConstraint(
+            "(selected AND selection_order IS NOT NULL AND selection_order BETWEEN 1 AND 32) OR "
+            "(NOT selected AND selection_order IS NULL)",
+            name="optimization_selected_order",
+        ),
+    )
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("optimization_run.id"), primary_key=True)
+    candidate_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("index_candidate.id"), primary_key=True, index=True
+    )
+    selected: Mapped[bool]
+    selection_order: Mapped[int | None] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(String(64))
+
+
+class OptimizationTrial(Base):
+    __tablename__ = "optimization_trial"
+    __table_args__ = (
+        UniqueConstraint("run_id", "step", "added_candidate_id", name="optimization_trial_once"),
+        CheckConstraint("step BETWEEN 1 AND 32", name="optimization_trial_step"),
+        Index(
+            "uq_optimization_step_choice",
+            "run_id",
+            "step",
+            unique=True,
+            postgresql_where=sa_text("chosen"),
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("optimization_run.id"), index=True)
+    evaluation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("index_evaluation.id"), index=True)
+    added_candidate_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("index_candidate.id"), index=True
+    )
+    step: Mapped[int]
+    chosen: Mapped[bool]
+    reason: Mapped[str] = mapped_column(String(64))
+    metrics: Mapped[dict] = mapped_column(JSONB)

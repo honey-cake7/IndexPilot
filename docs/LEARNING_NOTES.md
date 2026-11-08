@@ -81,3 +81,17 @@ Two indexes that help the same filter may compete for the same plan. Their indiv
 Unknown storage is not zero storage. If the size function is inaccessible, the member and whole-set byte estimates remain null. Only the empty hypothetical set legitimately costs zero additional hypothetical bytes. Likewise, percentage improvement over a zero baseline is undefined, so it is null rather than a division error or a made-up gain.
 
 Normalized evaluation tables preserve one frozen query per run and one plan per query/set pair. Candidate membership uses foreign keys. Later GET requests can explain a historical experiment without rerunning it against a changed database. Generation's old `not_evaluated` field stays a generation snapshot; the separate evaluation record holds the newer evidence.
+
+## M7: choosing a workload index set under a budget
+
+An index can help a rare query greatly and still matter less than a smaller improvement to a frequently run query. The optimizer adds each query's frequency times its root cost. Unit examples reverse the frequencies of two queries and verify that the chosen index reverses too. Those arithmetic examples test the decision rule; real PostgreSQL plans test the database behavior.
+
+Marginal gain means the improvement from what is already selected. After choosing index A, we ask PostgreSQL about A plus B, rather than reusing B's original standalone gain. If A already supplies the useful access path, B may add no benefit. `optimizer/greedy.py` repeats this question, ranks positive net gain per extra estimated byte and records why alternatives were passed over. Equal ratios prefer larger absolute gain and then canonical identity for deterministic results.
+
+A hard estimated-byte budget can legitimately produce an empty set. In the actual local example, a 1 MiB budget selected one index estimated at 286,720 bytes; zero bytes selected none. Both outcomes were saved and reloaded. The estimated plan cost changed from 320.12 to 28.05 for the selected case, but no submitted query was executed, so this is not a latency result.
+
+The optional write penalty is a configurable preference against maintenance cost, not a measured model of PostgreSQL writes. It raises the selection objective while the read-cost estimate stays visible separately. Users must interpret weights on the same scenario/observation basis as frequencies. An optional per-query limit can refuse a query regression even when the total improves; a percentage increase from a zero-cost baseline is undefined and is conservatively refused when the limit is enabled.
+
+Greedy selection is a practical search rule, not proof of the best possible answer. It can miss two indexes that help only together. A complete round compares every available next addition; the evaluation cap cannot quietly privilege the first visited candidate. One final fresh planning call is reserved, and changed costs/storage prevent saving an uncertain selection. The saved trace shows decisions made at each step; the final total gain does not belong independently to every chosen index.
+
+Normalized optimizer records link choices to the plans that justified them. Selected order has its own constrained rows. Both those records and the evaluation evidence commit in one transaction, so a failed membership insert cannot leave a half-saved optimization. Recommendation explanations, physical benchmarking and the dashboard still come later.
