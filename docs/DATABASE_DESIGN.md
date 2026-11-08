@@ -1,6 +1,6 @@
 # Metadata database design
 
-Status: migrations 0001–0005 implement targets, workloads, statistics, plans and candidates. M6–M7 add evaluations and optimization history. M8 migration 0008 adds recommendation snapshots, selected indexes, query/plan explanations and scoped relevance links. Benchmarks and reports remain planned. Demo business rows never belong in metadata.
+Status: migrations 0001–0008 implement targets, workloads, plans, candidates, evaluations, optimization history and recommendations. M9 migration 0009 adds durable benchmark jobs, approved input snapshots, arm membership, measurements and individual transaction samples. General reports remain planned. Demo business rows never belong in metadata.
 
 ```mermaid
 erDiagram
@@ -43,8 +43,14 @@ erDiagram
     evaluation_query ||--o{ recommendation_query : context
     recommendation_set_index ||--o{ recommendation_index_query : relevant_to
     recommendation_query ||--o{ recommendation_index_query : supports
-    recommendation_set ||--o{ benchmark_run : validates
-    benchmark_run ||--o{ benchmark_measurement : samples
+    recommendation_set ||--o{ benchmark_job : validates
+    benchmark_job ||--o{ benchmark_query : freezes
+    plan_analysis ||--o{ benchmark_query : source
+    benchmark_job ||--o{ benchmark_candidate : approves
+    index_candidate ||--o{ benchmark_candidate : source
+    benchmark_candidate ||--o{ benchmark_arm_index : assigned
+    benchmark_job ||--o{ benchmark_measurement : measures
+    benchmark_measurement ||--o{ benchmark_sample : logs
     analysis_run ||--o{ saved_report : exports
 ```
 
@@ -73,8 +79,12 @@ Every entity has a primary key (UUID where externally addressed, composite keys 
 | recommendation_set_index | Composite recommendation/candidate PK; unique selection order/source trial, definition, positive estimated bytes, marginal explanation and quoted deployment SQL. |
 | recommendation_query | Composite recommendation/source-plan PK, unique frozen evaluation-query link, frequency, original SQL, resolved context, raw baseline/final plans and explanation metrics. |
 | recommendation_index_query | Composite recommendation/candidate/source-plan PK; two composite FKs enforce index/query membership in that same recommendation; frozen proposal evidence and final-use flag. |
-| benchmark_run | Recommendation FK, isolated target identity, job status, dataset seed/scale, versions, conditions and error code. |
-| benchmark_measurement | Run FK, configuration arm, repetition, scenario/operation, sample or aggregate value, explicit metric/unit and sampling method. |
+| benchmark_job | Recommendation FK, request/confirmation, queued/running/completed/failed/cancelled status, manifest/result, cleanup/cancel flags, error and lifecycle times. |
+| benchmark_query | Composite job/source-plan PK; frozen representative SQL, positive frequency and resolved source context. |
+| benchmark_candidate | Composite job/candidate PK; validated frozen definition and saved IndexPilot membership flag. |
+| benchmark_arm_index | Composite job/candidate/arm PK; scoped FK to approved job candidate; per_query/indexpilot arms only. |
+| benchmark_measurement | Job FK; unique repetition/arm/phase, measured metrics and immutable conditions/dataset fingerprints. |
+| benchmark_sample | Composite measurement/client/sequence PK; nonnegative integer microsecond latency and script ID. Failed/incomplete logs cannot become successful measurements. |
 | saved_report | Analysis FK, report format/version and immutable rendered artifact or safe managed artifact reference; no arbitrary filesystem path. |
 
 Store PostgreSQL plan trees and frozen settings as JSONB because their internal structure varies; relational keys and membership remain normalized. Do not store comma-separated query IDs or selected indexes. Ordered index keys are structured data, not an unordered set.
@@ -130,3 +140,11 @@ One recommendation_set freezes one completed optimization. It copies selected me
 Recommendation_set_index separates reusable candidate identity from this recommendation's selection-step evidence. Recommendation_query separates final whole-set query contributions from index attribution. Recommendation_index_query stores many-to-many relevance with composite scope FKs, preventing a query from a different recommendation being attached accidentally. Positive size/order/frequency checks and unique source/order constraints protect saved records. Service checks enforce source optimization/batch/trial consistency beyond those FKs.
 
 Header and child rows commit in one metadata transaction. Creation locks only the source optimization to serialize duplicate snapshots, returning the existing record on repeats. Reads use the frozen rows and do not reconnect to the target or source optimizer content. Tests demonstrated source-mutation independence, atomic rollback after partial staging and valid use with one pool connection. Migration 0008 upgrade → downgrade to 0007 → upgrade passed on the separate disposable metadata database; retained main data was only upgraded. Benchmarks/reports remain future entities in the diagram.
+
+## M9 implementation details
+
+Benchmark jobs are separate measured outcomes linked to a recommendation; the historical recommendation's capture-time null benchmark outcome is not overwritten. An enqueue transaction freezes approved queries/candidates and explicit confirmation. Bounded queue/worker/target locks control claiming. The worker persists terminal failures/cancellation/recovery with cleanup confirmation rather than inventing completed results. Startup recovery does not resume partial experiments; it cleans owned resources safely and marks interruption failed before claiming another job.
+
+Every successful measurement owns individual samples, while its job/arm/repetition/phase conditions preserve experimental context. Uniqueness/check constraints reject duplicate transactions, negative samples and invalid arms/states. Composite arm membership FKs prevent using a candidate approved for a different job. Services enforce recommendation/source scope beyond those FKs. Durably completed phases may remain after an overall failed job, but no successful whole-job result is published. Raw stdout/logs remain in ignored local artifacts; a small sanitized summary is checked in separately.
+
+Migration 0009 upgrade → downgrade to 0008 → upgrade passed only on the separate disposable metadata database, with no drift. Main recommendations/history were retained and upgraded. Cleanup touches generated benchmark schemas, not metadata parent records or existing public indexes. General reports remain planned.

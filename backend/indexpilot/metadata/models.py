@@ -446,3 +446,100 @@ class RecommendationIndexQuery(Base):
     source_plan_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     proposed_evidence: Mapped[list] = mapped_column(JSONB)
     used_in_final_plan: Mapped[bool]
+
+
+class BenchmarkJob(Base):
+    __tablename__ = "benchmark_job"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('queued','running','completed','failed','cancelled')",
+            name="benchmark_status",
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    recommendation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("recommendation_set.id"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(16))
+    request: Mapped[dict] = mapped_column(JSONB)
+    manifest: Mapped[dict] = mapped_column(JSONB)
+    result: Mapped[dict | None] = mapped_column(JSONB)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    cancel_requested: Mapped[bool] = mapped_column(default=False)
+    cleanup_confirmed: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class BenchmarkQuery(Base):
+    __tablename__ = "benchmark_query"
+    __table_args__ = (
+        CheckConstraint("frequency>0 AND frequency<=1000000000", name="benchmark_frequency"),
+    )
+    job_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("benchmark_job.id"), primary_key=True)
+    source_plan_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("plan_analysis.id"), primary_key=True
+    )
+    frequency: Mapped[float] = mapped_column(Double)
+    canonical_sql: Mapped[str] = mapped_column(Text)
+    analysis: Mapped[dict] = mapped_column(JSONB)
+
+
+class BenchmarkCandidate(Base):
+    __tablename__ = "benchmark_candidate"
+    job_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("benchmark_job.id"), primary_key=True)
+    candidate_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("index_candidate.id"), primary_key=True
+    )
+    definition: Mapped[dict] = mapped_column(JSONB)
+    selected: Mapped[bool]
+
+
+class BenchmarkArmIndex(Base):
+    __tablename__ = "benchmark_arm_index"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["job_id", "candidate_id"],
+            ["benchmark_candidate.job_id", "benchmark_candidate.candidate_id"],
+        ),
+        CheckConstraint("arm IN ('per_query','indexpilot')", name="benchmark_arm"),
+    )
+    job_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    candidate_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    arm: Mapped[str] = mapped_column(String(16), primary_key=True)
+
+
+class BenchmarkMeasurement(Base):
+    __tablename__ = "benchmark_measurement"
+    __table_args__ = (
+        UniqueConstraint("job_id", "repetition", "arm", "phase", name="benchmark_measurement_once"),
+        CheckConstraint("repetition BETWEEN 0 AND 4", name="benchmark_repetition"),
+        CheckConstraint("arm IN ('baseline','per_query','indexpilot')", name="measurement_arm"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    job_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("benchmark_job.id"), index=True)
+    repetition: Mapped[int]
+    arm: Mapped[str] = mapped_column(String(16))
+    phase: Mapped[str] = mapped_column(String(32))
+    metrics: Mapped[dict] = mapped_column(JSONB)
+    conditions: Mapped[dict] = mapped_column(JSONB)
+
+
+class BenchmarkSample(Base):
+    __tablename__ = "benchmark_sample"
+    __table_args__ = (
+        CheckConstraint(
+            "client_id>=0 AND sequence>=1 AND script_id>=0 AND latency_us>=0",
+            name="benchmark_sample_values",
+        ),
+    )
+    measurement_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("benchmark_measurement.id"), primary_key=True
+    )
+    client_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sequence: Mapped[int] = mapped_column(Integer, primary_key=True)
+    script_id: Mapped[int]
+    latency_us: Mapped[int] = mapped_column(BigInteger)

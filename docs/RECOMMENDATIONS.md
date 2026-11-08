@@ -54,7 +54,7 @@ Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/v1/recommendations/$($recommen
 
 The JSON artifact has `requires_human_review=true` and `executed=false`. The download is a plain SQL attachment with fixed review warnings. Both include only the selected indexes; an empty selection produces no commands. Index SQL is structurally rebuilt from saved catalog/key context with identifier quoting, checked against its saved definition/signature and frozen at snapshot creation. It is never accepted as an arbitrary request string or executed by these routes.
 
-Review current schema, existing index/name conflicts, physical space and locking before any deliberate use. Historical estimated bytes do not guarantee final disk size. There is no automatic production deployment endpoint or general SQL executor. M9's future benchmark runner will require a separately verified disposable target and explicit benchmark confirmation; that work is not implemented here.
+Review current schema, existing index/name conflicts, physical space and locking before any deliberate use. Historical estimated bytes do not guarantee final disk size. There is no automatic production deployment endpoint or general SQL executor. M9 now provides a separately guarded [disposable benchmark runner](BENCHMARKING.md) with explicit confirmation. GET `/api/v1/benchmarks?recommendation_id=<UUID>` retrieves subsequent measured outcomes; benchmark_outcome remains null in the historical recommendation snapshot rather than rewriting what was known at its capture time.
 
 ## Storage, privacy and verification
 

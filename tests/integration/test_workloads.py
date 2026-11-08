@@ -26,7 +26,8 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def api():
     prefix = f"m3-test-{uuid.uuid4()}"
-    with TestClient(create_app()) as client:
+    # Capture the pinned server's full bounded 5,000-entry history, not an assumed empty cluster.
+    with TestClient(create_app(Settings(statistics_collection_limit=5000))) as client:
         yield client, prefix
     engine = metadata_engine(Settings())
     try:
@@ -222,7 +223,7 @@ def test_real_per_entry_reset_is_detected(admin):
     with connect_local("analyzer", autocommit=True) as connection:
         probe = "SELECT min(id), min(user_id), max(total) FROM public.orders WHERE user_id=778"
         connection.execute(probe).fetchall()
-        before = collect_snapshot(connection)
+        before = collect_snapshot(connection, limit=5000)
         row = next(item for item in before.entries if "min(user_id)" in item.query)
         admin.execute(
             "SELECT pg_stat_statements_reset(%s::oid, %s::oid, %s::bigint)",
@@ -233,7 +234,7 @@ def test_real_per_entry_reset_is_detected(admin):
             ),
         )
         connection.execute(probe).fetchall()
-        after = collect_snapshot(connection)
+        after = collect_snapshot(connection, limit=5000)
     workload_id = uuid.uuid4()
     previous = SnapshotView(id=uuid.uuid4(), workload_id=workload_id, **before.model_dump())
     current = SnapshotView(id=uuid.uuid4(), workload_id=workload_id, **after.model_dump())
@@ -312,7 +313,7 @@ def test_minmax_only_reset_keeps_cumulative_interval_usable(admin):
     with connect_local("analyzer", autocommit=True) as connection:
         probe = "SELECT max(id), max(user_id), max(total) FROM public.orders WHERE user_id=777"
         connection.execute(probe).fetchall()
-        before = collect_snapshot(connection)
+        before = collect_snapshot(connection, limit=5000)
         row = next(
             item for item in before.entries if "max(id), max(user_id), max(total)" in item.query
         )
@@ -325,7 +326,7 @@ def test_minmax_only_reset_keeps_cumulative_interval_usable(admin):
             ),
         )
         connection.execute(probe).fetchall()
-        after = collect_snapshot(connection)
+        after = collect_snapshot(connection, limit=5000)
     workload_id = uuid.uuid4()
     previous = SnapshotView(id=uuid.uuid4(), workload_id=workload_id, **before.model_dump())
     current = SnapshotView(id=uuid.uuid4(), workload_id=workload_id, **after.model_dump())

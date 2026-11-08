@@ -31,8 +31,8 @@ def _metadata(connection):
 def collect_snapshot(
     connection: psycopg.Connection, *, limit: int = 1000, allowed_schemas=("public",)
 ) -> SnapshotData:
-    if not 1 <= limit <= 1000:
-        raise ValueError("Collection limit must be between 1 and 1000")
+    if not 1 <= limit <= 5000:
+        raise ValueError("Collection limit must be between 1 and 5000")
     try:
         with connection.transaction():
             # Use the source server's clock; Windows client clocks can share coarse ticks.

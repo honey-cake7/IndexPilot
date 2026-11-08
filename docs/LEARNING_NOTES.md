@@ -107,3 +107,15 @@ Confidence should follow the available evidence. Real PostgreSQL planner estimat
 Normalization prevents mismatched evidence: a relevant-query link must reference both an index and a query within the same recommendation. Composite foreign keys enforce that scope in PostgreSQL. One transaction saves all the children, so failure after staging the header/query rows cannot leave a partial recommendation. Tests exercise these constraints and rollback against the real database.
 
 SQL export is text, not execution. Quoted identifiers preserve names containing quotes, spaces and semicolons as identifiers; tests parse the output into exactly the intended CREATE INDEX statement. The export uses the frozen proposal and still needs human review against current schema, space and locking conditions. Nothing in M8 builds a physical index or runs a benchmark.
+
+## M9: testing estimates against actual execution
+
+Planner cost is a relative estimate. M9 measures elapsed transactions with pgbench and stores each individual microsecond sample. A read transaction includes one SELECT plus BEGIN/COMMIT/protocol overhead, so its milliseconds are not isolated server execution time. A p95 can be calculated from those samples; an aggregate statement mean alone cannot supply it. The same distinction applies to throughput: TPS counts the defined transactions.
+
+Fair comparisons require the same starting rows. Every arm/operation gets a newly generated schema at the same seed/scale; row hashes verify equivalence. Write probes commit real inserts, indexed-column updates and deletes, then the next experiment starts fresh instead of inheriting dead tuples/mutations. Arm order rotates. This still does not flush OS/PostgreSQL caches or eliminate background activity, so results are labeled local warm-cache measurements.
+
+The published two-query experiment shows a real trade-off. IndexPilot reduced mixed-read mean latency from 0.3604 to 0.2117 ms using 114,688 measured index main-fork bytes within a 300,000 estimated-byte budget. The per-query set was faster at 0.1209 ms but used 475,136 bytes. IndexPilot's update mean and the per-query delete mean regressed, each dominated by one slower repetition. All repetitions are retained; we do not attribute the outliers to indexes alone or claim a universal win.
+
+Isolation is more than a database name. M9 verifies server/database/role/marker, rejects monitored aliases and checks a nonce through the actual container transport. DDL/DML is confined to owned generated schemas. Unknown external dependencies stop cleanup instead of being destroyed with CASCADE. Durable queued/running/terminal states and explicit cleanup confirmation make failures visible after restart.
+
+Long-lived statistics are part of real development. When local statement history exceeded an older test's capture bound, the collector correctly refused interval inference. Raising an explicit bounded test capture preserved both the real history and the safety rule. Resetting all statistics or pretending truncated captures were complete would have hidden the problem.

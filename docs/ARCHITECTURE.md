@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M1–M5 provisioning, backend, workloads, plans and candidates are implemented. M6–M7 add HypoPG evaluation and workload-aware selection; M8 adds frozen recommendation explanations and separate SQL artifacts. Benchmarks and the dashboard remain planned. Ingestion alone never authorizes planning; plan/evaluation/optimization paths apply a separate catalog safety policy.
+Status: M1–M8 implement provisioning, workloads/plans/candidates, hypothetical evaluation, selection and recommendation snapshots. M9 adds isolated physical pgbench jobs and measured comparisons. The dashboard/general reports remain planned. Ingestion alone never authorizes planning or benchmarking; those paths apply separate safety policies.
 
 ## Boundaries and flow
 
@@ -68,7 +68,7 @@ Version routes under `/api/v1`. Health is separate. Connections expose sanitized
 
 Use Pydantic request/response types, consistent `{error: {code, message, request_id}}` errors, bounded payloads and pagination. Database exceptions become safe domain errors; never return raw exceptions containing credentials. Bind to loopback by default, use a restrictive local frontend CORS origin, and do not enable credentialed wildcard CORS.
 
-For long benchmarks, use a bounded local worker rather than a distributed queue. Persist job transitions; mark interrupted running jobs failed on restart; prevent overlapping jobs from changing the same benchmark database. Target SQL analysis and benchmark execution have separate connections and permissions.
+M9 uses an explicit foreground local worker (`scripts/run_benchmarks.py --serve` or `--once`) with durable queued/running/completed/failed/cancelled jobs. Metadata/target advisory locks exclude overlapping workers and sample regeneration. Live database/role/marker/monitored-identity checks and a container nonce precede workload execution. Every arm/write operation restores deterministic data in a generated, owned namespace; source columns/collations/constraints must match the sample template. Cleanup never uses CASCADE or drops public indexes. Only validated saved candidates and re-resolved representative SELECTs reach pgbench; its meta-command language has an additional multiline/backslash admission boundary. Timeouts/cancellation terminate only job-owned clients, and interrupted jobs fail/recover safely. Individual samples, actual storage and conditions persist relationally. See [BENCHMARKING.md](BENCHMARKING.md).
 
 ## Sources
 

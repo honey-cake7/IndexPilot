@@ -1,0 +1,1068 @@
+{
+  "job_id": "38ced867-7cfc-429f-9a3a-bc4ee90e51d6",
+  "recommendation_id": "74790511-99fe-4452-973c-df9eb247f670",
+  "status": "completed",
+  "cleanup_confirmed": true,
+  "started_at": "2026-11-08T17:35:09.078958+00:00",
+  "finished_at": "2026-11-08T17:36:31.959418+00:00",
+  "request": {
+    "seed": 42,
+    "orders": 10000,
+    "clients": 1,
+    "repetitions": 3,
+    "timeout_seconds": 300,
+    "recommendation_id": "74790511-99fe-4452-973c-df9eb247f670",
+    "read_warmup_per_client": 20,
+    "transactions_per_client": 200,
+    "regression_threshold_pct": 10.0,
+    "confirm_disposable_benchmark": true
+  },
+  "conditions": {
+    "application_version": "0.1.0",
+    "server_version": "18.6 (Debian 18.6-1.pgdg12+2)",
+    "pgbench_version": "pgbench (PostgreSQL) 18.6 (Debian 18.6-1.pgdg12+2)",
+    "dataset": {
+      "seed": 42,
+      "anchor": "2026-01-01T00:00:00+00:00",
+      "orders": 10000,
+      "generator_version": 1
+    },
+    "client_platform": "Windows",
+    "client_transport": "container-local Unix socket",
+    "container_limits": "cpu=max 100000\nmemory=max\ncpus=32\nMemTotal:       32712384 kB\n",
+    "planner_settings": {
+      "TimeZone": "Etc/UTC",
+      "work_mem": "4096",
+      "seq_page_cost": "1",
+      "shared_buffers": "16384",
+      "random_page_cost": "4",
+      "effective_cache_size": "524288",
+      "max_parallel_workers_per_gather": "2"
+    },
+    "cache_policy": "read warmup; no OS/PostgreSQL cache flush; restored write datasets",
+    "protocol": "simple",
+    "threads": 1,
+    "arm_order": "cyclic rotation by repetition",
+    "sample_semantics": "committed transaction latency including BEGIN/COMMIT and protocol",
+    "budget_bytes": 300000,
+    "read_weights": [
+      {
+        "frequency": 25.0,
+        "pgbench_weight": 2500,
+        "source_plan_id": "2b5289c1-8ce7-44a7-af64-0369a3ece466"
+      },
+      {
+        "frequency": 100.0,
+        "pgbench_weight": 10000,
+        "source_plan_id": "3ad12961-131d-424e-ab81-39d563cac260"
+      }
+    ],
+    "weight_policy": "nearest integer after max-frequency scaling to 10000, minimum one; quantized"
+  },
+  "benchmark_planner_estimates": {
+    "policy": "per-query-singleton-on-benchmark-v1",
+    "assignments": [
+      {
+        "candidate_id": "7c3c2226-f8a2-4750-bfbb-d89ce6be9db9",
+        "source_plan_id": "2b5289c1-8ce7-44a7-af64-0369a3ece466"
+      },
+      {
+        "candidate_id": "5b302cf2-85ae-4a47-84ba-99c4962adc90",
+        "source_plan_id": "3ad12961-131d-424e-ab81-39d563cac260"
+      }
+    ],
+    "hypopg_capability": {
+      "version": "1.4.3",
+      "warning": null,
+      "available": true,
+      "schema_name": "public",
+      "storage_available": true
+    },
+    "per_query_estimated_bytes": 671744,
+    "baseline_weighted_planner_cost": 39270.0,
+    "per_query_estimated_budget_fit": false,
+    "per_query_weighted_planner_cost": 3542.25,
+    "indexpilot_weighted_planner_cost": 12562.0
+  },
+  "original_recommendation_estimates": {
+    "message": "Selected 1 B-Tree index(es), estimated at 286720 bytes within a 300000-byte estimated budget. Weighted planner cost: 39270 to 12562. Execution performance is unmeasured.",
+    "evaluations": 9,
+    "final_score": {
+      "reason": null,
+      "feasible": true,
+      "objective": 12562.0,
+      "read_cost": 12562.0,
+      "storage_bytes": 286720,
+      "write_penalty": 0.0
+    },
+    "stop_reason": "no_feasible_gain",
+    "baseline_score": {
+      "reason": null,
+      "feasible": true,
+      "objective": 39270.0,
+      "read_cost": 39270.0,
+      "storage_bytes": 0,
+      "write_penalty": 0.0
+    },
+    "selected_count": 1,
+    "search_complete": true,
+    "estimated_net_gain": 26708.0,
+    "estimated_size_bytes": 286720,
+    "storage_budget_bytes": 300000,
+    "estimated_read_improvement_pct": 68.01120448179272
+  },
+  "phase_query_mapping": {
+    "read_q0": "Latest 100 paid orders, source frequency 25",
+    "read_q1": "Orders for user 101, source frequency 100"
+  },
+  "arms": {
+    "baseline": {
+      "index_keys": [],
+      "initial_additional_index_bytes_by_repetition": [
+        0,
+        0,
+        0
+      ],
+      "initial_actual_budget_fit": true
+    },
+    "per_query": {
+      "index_keys": [
+        [
+          "status",
+          "created_at"
+        ],
+        [
+          "user_id"
+        ]
+      ],
+      "initial_additional_index_bytes_by_repetition": [
+        475136,
+        475136,
+        475136
+      ],
+      "initial_actual_budget_fit": false
+    },
+    "indexpilot": {
+      "index_keys": [
+        [
+          "user_id"
+        ]
+      ],
+      "initial_additional_index_bytes_by_repetition": [
+        114688,
+        114688,
+        114688
+      ],
+      "initial_actual_budget_fit": true
+    }
+  },
+  "measurements": [
+    {
+      "arm": "baseline",
+      "phase": "delete",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 2.3826666666666667,
+        "median_ms": 2.3235,
+        "p95_ms": 2.892
+      },
+      "repetition_mean_ms": [
+        2.374715,
+        2.43925,
+        2.334035
+      ],
+      "repetition_tps": [
+        420.26607,
+        409.033087,
+        427.563295
+      ],
+      "mean_repetition_tps": 418.9541506666667,
+      "p95_ms_by_repetition": [
+        3.087,
+        3.023,
+        2.74
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        0,
+        0,
+        0
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "baseline",
+      "phase": "insert",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 2.36839,
+        "median_ms": 2.2895000000000003,
+        "p95_ms": 2.948
+      },
+      "repetition_mean_ms": [
+        2.418925,
+        2.3615049999999997,
+        2.32474
+      ],
+      "repetition_tps": [
+        412.472339,
+        422.531045,
+        429.318135
+      ],
+      "mean_repetition_tps": 421.44050633333336,
+      "p95_ms_by_repetition": [
+        3.07,
+        2.824,
+        2.761
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        0,
+        0,
+        0
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "baseline",
+      "phase": "read_mix",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 0.36042166666666664,
+        "median_ms": 0.3035,
+        "p95_ms": 0.571
+      },
+      "repetition_mean_ms": [
+        0.339945,
+        0.36725499999999994,
+        0.37406500000000004
+      ],
+      "repetition_tps": [
+        2930.574686,
+        2713.483299,
+        2664.748048
+      ],
+      "mean_repetition_tps": 2769.6020110000004,
+      "p95_ms_by_repetition": [
+        0.544,
+        0.612,
+        0.583
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        0,
+        0,
+        0
+      ],
+      "script_counts_by_repetition": [
+        [
+          48,
+          152
+        ],
+        [
+          41,
+          159
+        ],
+        [
+          43,
+          157
+        ]
+      ]
+    },
+    {
+      "arm": "baseline",
+      "phase": "read_q0",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 0.527495,
+        "median_ms": 0.512,
+        "p95_ms": 0.609
+      },
+      "repetition_mean_ms": [
+        0.499475,
+        0.536215,
+        0.546795
+      ],
+      "repetition_tps": [
+        1997.343533,
+        1860.551654,
+        1823.885606
+      ],
+      "mean_repetition_tps": 1893.926931,
+      "p95_ms_by_repetition": [
+        0.58,
+        0.617,
+        0.621
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        0,
+        0,
+        0
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "baseline",
+      "phase": "read_q1",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 0.30862333333333336,
+        "median_ms": 0.301,
+        "p95_ms": 0.383
+      },
+      "repetition_mean_ms": [
+        0.28174,
+        0.321275,
+        0.322855
+      ],
+      "repetition_tps": [
+        3534.880433,
+        3101.015583,
+        3086.27687
+      ],
+      "mean_repetition_tps": 3240.7242953333334,
+      "p95_ms_by_repetition": [
+        0.362,
+        0.394,
+        0.381
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        0,
+        0,
+        0
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "baseline",
+      "phase": "update",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 2.2787016666666666,
+        "median_ms": 2.211,
+        "p95_ms": 2.681
+      },
+      "repetition_mean_ms": [
+        2.264005,
+        2.3321199999999997,
+        2.23998
+      ],
+      "repetition_tps": [
+        440.881145,
+        427.981426,
+        445.582164
+      ],
+      "mean_repetition_tps": 438.14824500000003,
+      "p95_ms_by_repetition": [
+        2.648,
+        2.717,
+        2.615
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        0,
+        0,
+        0
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "per_query",
+      "phase": "delete",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 5.00284,
+        "median_ms": 2.369,
+        "p95_ms": 18.858
+      },
+      "repetition_mean_ms": [
+        10.344100000000001,
+        2.379075,
+        2.285345
+      ],
+      "repetition_tps": [
+        96.588634,
+        419.510599,
+        436.790897
+      ],
+      "mean_repetition_tps": 317.63004333333333,
+      "p95_ms_by_repetition": [
+        21.655,
+        2.802,
+        2.707
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        475136,
+        475136,
+        475136
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "per_query",
+      "phase": "insert",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 2.283975,
+        "median_ms": 2.2225,
+        "p95_ms": 2.8
+      },
+      "repetition_mean_ms": [
+        2.34807,
+        2.295315,
+        2.20854
+      ],
+      "repetition_tps": [
+        425.048084,
+        434.802458,
+        451.943697
+      ],
+      "mean_repetition_tps": 437.26474633333333,
+      "p95_ms_by_repetition": [
+        2.852,
+        2.879,
+        2.679
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        491520,
+        491520,
+        491520
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "per_query",
+      "phase": "read_mix",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 0.12093666666666666,
+        "median_ms": 0.105,
+        "p95_ms": 0.174
+      },
+      "repetition_mean_ms": [
+        0.12304499999999999,
+        0.11955500000000001,
+        0.12020999999999998
+      ],
+      "repetition_tps": [
+        8052.178114,
+        8290.842764,
+        8239.607795
+      ],
+      "mean_repetition_tps": 8194.209557666667,
+      "p95_ms_by_repetition": [
+        0.179,
+        0.166,
+        0.174
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        475136,
+        475136,
+        475136
+      ],
+      "script_counts_by_repetition": [
+        [
+          48,
+          152
+        ],
+        [
+          41,
+          159
+        ],
+        [
+          43,
+          157
+        ]
+      ]
+    },
+    {
+      "arm": "per_query",
+      "phase": "read_q0",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 0.14248,
+        "median_ms": 0.129,
+        "p95_ms": 0.202
+      },
+      "repetition_mean_ms": [
+        0.139315,
+        0.14204,
+        0.146085
+      ],
+      "repetition_tps": [
+        7124.283119,
+        6982.752601,
+        6795.555707
+      ],
+      "mean_repetition_tps": 6967.5304756666665,
+      "p95_ms_by_repetition": [
+        0.199,
+        0.196,
+        0.216
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        475136,
+        475136,
+        475136
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "per_query",
+      "phase": "read_q1",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 0.11283499999999999,
+        "median_ms": 0.104,
+        "p95_ms": 0.15
+      },
+      "repetition_mean_ms": [
+        0.11516,
+        0.11116999999999999,
+        0.112175
+      ],
+      "repetition_tps": [
+        8600.670852,
+        8910.670528,
+        8840.560492
+      ],
+      "mean_repetition_tps": 8783.967290666667,
+      "p95_ms_by_repetition": [
+        0.153,
+        0.145,
+        0.132
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        475136,
+        475136,
+        475136
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "per_query",
+      "phase": "update",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 2.31539,
+        "median_ms": 2.2445000000000004,
+        "p95_ms": 2.903
+      },
+      "repetition_mean_ms": [
+        2.382505,
+        2.406515,
+        2.15715
+      ],
+      "repetition_tps": [
+        418.871852,
+        414.674501,
+        462.75194
+      ],
+      "mean_repetition_tps": 432.09943100000004,
+      "p95_ms_by_repetition": [
+        3.022,
+        3.028,
+        2.6
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        483328,
+        483328,
+        483328
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "delete",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 2.3480616666666667,
+        "median_ms": 2.285,
+        "p95_ms": 2.809
+      },
+      "repetition_mean_ms": [
+        2.37032,
+        2.40723,
+        2.266635
+      ],
+      "repetition_tps": [
+        420.995022,
+        414.558464,
+        440.412226
+      ],
+      "mean_repetition_tps": 425.32190399999996,
+      "p95_ms_by_repetition": [
+        2.805,
+        2.938,
+        2.674
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        114688,
+        114688,
+        114688
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "insert",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 2.3189266666666666,
+        "median_ms": 2.262,
+        "p95_ms": 2.812
+      },
+      "repetition_mean_ms": [
+        2.322045,
+        2.30785,
+        2.326885
+      ],
+      "repetition_tps": [
+        429.72955,
+        432.359516,
+        428.773258
+      ],
+      "mean_repetition_tps": 430.28744133333333,
+      "p95_ms_by_repetition": [
+        2.805,
+        2.75,
+        2.916
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        122880,
+        122880,
+        122880
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "read_mix",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 0.21170166666666668,
+        "median_ms": 0.106,
+        "p95_ms": 0.558
+      },
+      "repetition_mean_ms": [
+        0.219685,
+        0.20349499999999998,
+        0.211925
+      ],
+      "repetition_tps": [
+        4523.55642,
+        4887.227232,
+        4691.091617
+      ],
+      "mean_repetition_tps": 4700.625089666667,
+      "p95_ms_by_repetition": [
+        0.544,
+        0.537,
+        0.565
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        114688,
+        114688,
+        114688
+      ],
+      "script_counts_by_repetition": [
+        [
+          48,
+          152
+        ],
+        [
+          41,
+          159
+        ],
+        [
+          43,
+          157
+        ]
+      ]
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "read_q0",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 0.54151,
+        "median_ms": 0.519,
+        "p95_ms": 0.634
+      },
+      "repetition_mean_ms": [
+        0.54486,
+        0.53945,
+        0.54022
+      ],
+      "repetition_tps": [
+        1830.529572,
+        1848.924388,
+        1847.029054
+      ],
+      "mean_repetition_tps": 1842.1610046666665,
+      "p95_ms_by_repetition": [
+        0.65,
+        0.612,
+        0.634
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        114688,
+        114688,
+        114688
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "read_q1",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 0.11329833333333333,
+        "median_ms": 0.103,
+        "p95_ms": 0.157
+      },
+      "repetition_mean_ms": [
+        0.112545,
+        0.11407,
+        0.11327999999999999
+      ],
+      "repetition_tps": [
+        8795.84836,
+        8685.079034,
+        8748.523687
+      ],
+      "mean_repetition_tps": 8743.150360333333,
+      "p95_ms_by_repetition": [
+        0.162,
+        0.151,
+        0.182
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        114688,
+        114688,
+        114688
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "update",
+      "pooled_individual_samples": {
+        "samples": 600,
+        "mean_ms": 5.344295000000001,
+        "median_ms": 2.3495,
+        "p95_ms": 19.061
+      },
+      "repetition_mean_ms": [
+        2.333725,
+        2.21467,
+        11.484490000000001
+      ],
+      "repetition_tps": [
+        427.57335,
+        450.733682,
+        87.005812
+      ],
+      "mean_repetition_tps": 321.77094800000003,
+      "p95_ms_by_repetition": [
+        2.719,
+        3.025,
+        21.803
+      ],
+      "additional_index_bytes_after_by_repetition": [
+        122880,
+        122880,
+        122880
+      ],
+      "script_counts_by_repetition": [
+        [
+          200
+        ],
+        [
+          200
+        ],
+        [
+          200
+        ]
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "arm": "per_query",
+      "phase": "delete",
+      "mean_ms": 5.00284,
+      "regression": true,
+      "repetitions": 3,
+      "baseline_mean_ms": 2.3826666666666667,
+      "repetition_stddev_ms": 4.625904248784772,
+      "measured_improvement_pct": -109.96810296586457,
+      "baseline_repetition_stddev_ms": 0.05305629847938248
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "delete",
+      "mean_ms": 2.3480616666666667,
+      "regression": false,
+      "repetitions": 3,
+      "baseline_mean_ms": 2.3826666666666667,
+      "repetition_stddev_ms": 0.07289247943603887,
+      "measured_improvement_pct": 1.452364297705655,
+      "baseline_repetition_stddev_ms": 0.05305629847938248
+    },
+    {
+      "arm": "per_query",
+      "phase": "insert",
+      "mean_ms": 2.283975,
+      "regression": false,
+      "repetitions": 3,
+      "baseline_mean_ms": 2.3683899999999998,
+      "repetition_stddev_ms": 0.07045283475489102,
+      "measured_improvement_pct": 3.564235619978129,
+      "baseline_repetition_stddev_ms": 0.047468473485040796
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "insert",
+      "mean_ms": 2.3189266666666666,
+      "regression": false,
+      "repetitions": 3,
+      "baseline_mean_ms": 2.3683899999999998,
+      "repetition_stddev_ms": 0.009893220321681447,
+      "measured_improvement_pct": 2.0884792341351432,
+      "baseline_repetition_stddev_ms": 0.047468473485040796
+    },
+    {
+      "arm": "per_query",
+      "phase": "read_mix",
+      "mean_ms": 0.12093666666666665,
+      "regression": false,
+      "repetitions": 3,
+      "baseline_mean_ms": 0.36042166666666664,
+      "repetition_stddev_ms": 0.0018550089847042001,
+      "measured_improvement_pct": 66.4457834110972,
+      "baseline_repetition_stddev_ms": 0.018057254313248554
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "read_mix",
+      "mean_ms": 0.21170166666666668,
+      "regression": false,
+      "repetitions": 3,
+      "baseline_mean_ms": 0.36042166666666664,
+      "repetition_stddev_ms": 0.00809731025299966,
+      "measured_improvement_pct": 41.26278016952365,
+      "baseline_repetition_stddev_ms": 0.018057254313248554
+    },
+    {
+      "arm": "per_query",
+      "phase": "read_q0",
+      "mean_ms": 0.14248,
+      "regression": false,
+      "repetitions": 3,
+      "baseline_mean_ms": 0.527495,
+      "repetition_stddev_ms": 0.003406380043389168,
+      "measured_improvement_pct": 72.98931743428848,
+      "baseline_repetition_stddev_ms": 0.024835949750311552
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "read_q0",
+      "mean_ms": 0.54151,
+      "regression": false,
+      "repetitions": 3,
+      "baseline_mean_ms": 0.527495,
+      "repetition_stddev_ms": 0.0029266192099417416,
+      "measured_improvement_pct": -2.6568972217746234,
+      "baseline_repetition_stddev_ms": 0.024835949750311552
+    },
+    {
+      "arm": "per_query",
+      "phase": "read_q1",
+      "mean_ms": 0.112835,
+      "regression": false,
+      "repetitions": 3,
+      "baseline_mean_ms": 0.3086233333333333,
+      "repetition_stddev_ms": 0.002075265043313748,
+      "measured_improvement_pct": 63.439251730804536,
+      "baseline_repetition_stddev_ms": 0.023295049009034802
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "read_q1",
+      "mean_ms": 0.11329833333333333,
+      "regression": false,
+      "repetitions": 3,
+      "baseline_mean_ms": 0.3086233333333333,
+      "repetition_stddev_ms": 0.0007626652826327763,
+      "measured_improvement_pct": 63.28912266300883,
+      "baseline_repetition_stddev_ms": 0.023295049009034802
+    },
+    {
+      "arm": "per_query",
+      "phase": "update",
+      "mean_ms": 2.3153900000000003,
+      "regression": false,
+      "repetitions": 3,
+      "baseline_mean_ms": 2.2787016666666666,
+      "repetition_stddev_ms": 0.13756468742013703,
+      "measured_improvement_pct": -1.61005426335612,
+      "baseline_repetition_stddev_ms": 0.0477958042963325
+    },
+    {
+      "arm": "indexpilot",
+      "phase": "update",
+      "mean_ms": 5.344295,
+      "regression": true,
+      "repetitions": 3,
+      "baseline_mean_ms": 2.2787016666666666,
+      "repetition_stddev_ms": 5.31789803416491,
+      "measured_improvement_pct": -134.5324567132892,
+      "baseline_repetition_stddev_ms": 0.0477958042963325
+    }
+  ],
+  "warnings": [
+    "Warm-cache measurements are local; no universal speedup is claimed.",
+    "TPS/latency describe transactions, not isolated server query execution.",
+    "Write probes are controlled orders-table operations, not production write rates.",
+    "No WAL or cold-cache measurement; no statistical significance claim.",
+    "Per-query union ignores the budget; actual storage fit is reported per arm."
+  ],
+  "total_individual_transactions": 10800
+}

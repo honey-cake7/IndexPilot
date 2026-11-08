@@ -53,7 +53,7 @@ The equivalent API flow:
 
 The collector currently supports pg_stat_statements **1.12 on PostgreSQL 18**. It reads only the connected demo database, retains the `(dbid, userid, queryid, toplevel)` identity, and skips statements outside the supported syntax policy. Each entry stores cumulative calls, total/mean execution milliseconds, rows, ten buffer counters and `stats_since`. Snapshots retain extension version, database OID, server start, reset/deallocation metadata, collection start/end, skipped count and warnings. Start/end timestamps come from PostgreSQL's clock.
 
-The database is not asked to run a workload to populate statistics. Collection reads statistics that already exist. It can legitimately return no supported entries. The capture has a bounded 1,000-entry scan; truncation is explicit and disables interval inference. Statistics are sampled over a window, not an atomic MVCC snapshot.
+The database is not asked to run a workload to populate statistics. Collection reads statistics that already exist. It can legitimately return no supported entries. The default scan limit is 1,000; `INDEXPILOT_STATISTICS_COLLECTION_LIMIT` can explicitly raise it up to 5,000 for accumulated local histories. Truncation remains explicit and disables interval inference at either limit. Tests use the larger bound on the pinned server without clearing its statement history. Statistics are sampled over a window, not an atomic MVCC snapshot.
 
 ## Correct interval interpretation
 

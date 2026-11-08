@@ -16,6 +16,12 @@ from indexpilot.evaluation.session import HypoPGUnavailable, HypotheticalSession
 from indexpilot.local import ROLES, connect_local
 from indexpilot.main import create_app
 from indexpilot.metadata.models import (
+    BenchmarkArmIndex,
+    BenchmarkCandidate,
+    BenchmarkJob,
+    BenchmarkMeasurement,
+    BenchmarkQuery,
+    BenchmarkSample,
     CandidateBatch,
     CandidateBatchSource,
     EvaluationMember,
@@ -93,6 +99,23 @@ def evaluation_api(evaluation_schema):
             recommendations = select(RecommendationSet.id).where(
                 RecommendationSet.optimization_id.in_(optimizations)
             )
+            jobs = select(BenchmarkJob.id).where(
+                BenchmarkJob.recommendation_id.in_(recommendations)
+            )
+            measurements = select(BenchmarkMeasurement.id).where(
+                BenchmarkMeasurement.job_id.in_(jobs)
+            )
+            db.execute(
+                delete(BenchmarkSample).where(BenchmarkSample.measurement_id.in_(measurements))
+            )
+            for model in (
+                BenchmarkMeasurement,
+                BenchmarkArmIndex,
+                BenchmarkCandidate,
+                BenchmarkQuery,
+            ):
+                db.execute(delete(model).where(model.job_id.in_(jobs)))
+            db.execute(delete(BenchmarkJob).where(BenchmarkJob.id.in_(jobs)))
             for model in (RecommendationIndexQuery, RecommendationSetIndex, RecommendationQuery):
                 db.execute(delete(model).where(model.recommendation_id.in_(recommendations)))
             db.execute(delete(RecommendationSet).where(RecommendationSet.id.in_(recommendations)))

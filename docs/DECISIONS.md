@@ -109,3 +109,19 @@ Query contribution is frequency times baseline-minus-final root cost, expressed 
 ## D027 — Quoted SQL is a separate, non-executing artifact
 
 At snapshot creation M8 rebuilds index SQL from saved structure/catalog context and checks signature/definition agreement. Only selected frozen commands are exported through JSON or a plain SQL download, with review warnings. Hypothetical names/OIDs are not deployment identities. No arbitrary DDL request or production execution route is added. Empty selections contain no commands; physical benchmarking remains M9 and requires an explicitly isolated target and confirmation.
+
+## D028 — Owned benchmark namespaces with two transport checks
+
+M9 accepts only explicitly confirmed recommendation IDs in the fixed disposable database/owner/marker. Live identities exclude demo/metadata/monitored aliases, and a nonce proves the fixed Compose pgbench client reaches the guarded database. All physical indexes/data belong to generated UUID-owned schemas; public indexes/data remain untouched. Source SQL is AST-rebound/re-resolved against a compatible template, and multiline/backslash literals are refused at the additional pgbench language boundary. Cleanup drops known objects without CASCADE; unknown dependencies block it safely.
+
+## D029 — Three arms, durable individual measurements and honest write probes
+
+The unconstrained per-query singleton union is selected on a benchmark pilot dataset; IndexPilot's saved set stays fixed. Each repetition rotates arm order and restores the same seeded rows per operation. Read mixtures and single-query transactions use checked warmups. Controlled committed insert/update/delete transactions require one affected row, with independently restored write state. Transaction logs support nearest-rank p95; TPS excludes initial connection time. Raw logs stay local, samples persist relationally, and the published summary retains every repetition/outlier/regression. Main-fork index bytes, cache limitations, weight quantization and budget mismatch are explicit. WAL, cold-cache behavior and significance are not measured.
+
+## D030 — Explicit local worker and preserved failure history
+
+An explicit foreground/one-shot CLI consumes a bounded durable queue under metadata/target advisory locks. Cancellation/deadlines are cooperative with bounded subprocess/server statements, and only job-owned clients are terminated. Startup marks interrupted jobs failed and retries safe cleanup before claiming more work. No partial successful whole-job result is published. A real CLI smoke test exposed script-only generator imports; the shared engine generator fixes that while preserving the original CLI. Failed prototype records remain failed, with cleanup rechecked rather than fabricated.
+
+## D031 — Larger statistics capture without discarding history
+
+Accumulated development history made the old workload integration tests correctly see truncated 1,000-entry captures. Keep the application's default and conservative truncation/reset/eviction semantics. Add an administrator-configured 1–5,000 bound and use the full pinned-server bound for controlled tests, without clearing global statistics or weakening interval assertions. A larger full capture does not make earlier truncated snapshots usable.

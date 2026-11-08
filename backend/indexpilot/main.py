@@ -16,6 +16,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException
 
+from indexpilot.api.benchmarks import router as benchmark_router
 from indexpilot.api.body_limit import BodyLimitMiddleware
 from indexpilot.api.candidates import router as candidate_router
 from indexpilot.api.dependencies import get_engine
@@ -158,7 +159,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def ready(request: Request):
         with get_engine(request).connect() as connection:
             revision = connection.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            if revision != "0008":
+            if revision != "0009":
                 raise LocalConnectionError("metadata_migration_required")
         with target_connection(settings) as connection:
             require_demo_identity(connection)
@@ -182,6 +183,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(evaluation_router)
     app.include_router(optimization_router)
     app.include_router(recommendation_router)
+    app.include_router(benchmark_router)
     return app
 
 

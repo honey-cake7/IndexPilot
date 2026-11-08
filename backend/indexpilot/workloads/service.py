@@ -208,7 +208,11 @@ def take_snapshot(engine: Engine, settings: Settings, workload_id: uuid.UUID) ->
         ensure_demo_target(session, settings)
     with target_connection(settings) as connection:
         require_demo_identity(connection)
-        snapshot = collect_snapshot(connection, allowed_schemas=settings.analysis_schemas)
+        snapshot = collect_snapshot(
+            connection,
+            limit=settings.statistics_collection_limit,
+            allowed_schemas=settings.analysis_schemas,
+        )
     return save_snapshot(engine, workload_id, snapshot)
 
 
