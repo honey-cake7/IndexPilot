@@ -119,3 +119,13 @@ The published two-query experiment shows a real trade-off. IndexPilot reduced mi
 Isolation is more than a database name. M9 verifies server/database/role/marker, rejects monitored aliases and checks a nonce through the actual container transport. DDL/DML is confined to owned generated schemas. Unknown external dependencies stop cleanup instead of being destroyed with CASCADE. Durable queued/running/terminal states and explicit cleanup confirmation make failures visible after restart.
 
 Long-lived statistics are part of real development. When local statement history exceeded an older test's capture bound, the collector correctly refused interval inference. Raising an explicit bounded test capture preserved both the real history and the safety rule. Resetting all statistics or pretending truncated captures were complete would have hidden the problem.
+
+## M10: presenting database evidence accurately
+
+A dashboard is another client of the database engine. TypeScript checks the request contract, but cannot prove that an index works: PostgreSQL/HypoPG and actual pgbench runs supply that evidence. The generated client catches field mismatches without duplicating backend models by hand. A full workflow test connects the form to saved PostgreSQL records; component fixtures test loading/errors without claiming to measure database behavior.
+
+A budget slider changes an input, not history. For example, a 1 MiB optimizer result remains a 1 MiB result after typing zero. A new optimizer request saves a different ID and may select no indexes. Both outcomes remain available. Planner costs are frequency-weighted root costs; adding the child-node costs would double-count work. The plan tree therefore shows estimates without summing its children.
+
+A chart must state its units and measurement population. The measured chart uses only the selected pgbench phase and reports the mean of repetition means, repetition count and range. The update phase is a different experiment from the mixed-read phase. Missing measurements do not become zeros. A single successful run checks the workflow; it does not establish repeatable performance superiority.
+
+Accessibility is testable behavior. Real browser checks found low-contrast labels, scrollable tables lacking keyboard focus, and narrow layouts allowing descendants to widen the page. Correct colors, focusable scroll regions, positioned hidden table captions and grid minimum widths fixed those findings without hiding the data. Native inputs, visible focus, a skip link and a keyboard-operable mobile drawer let users complete the same workflow without hover.

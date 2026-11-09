@@ -1,0 +1,6 @@
+.openapi.json
+.sites-runtime/
+dist/
+playwright-report/
+test-results/
+package-lock.json

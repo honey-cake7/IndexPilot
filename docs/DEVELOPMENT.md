@@ -169,3 +169,11 @@ Raw stdout/logs are ignored under benchmark-results/<job-id>; individual samples
 Migration 0009 reversal/re-upgrade was verified only on the disposable metadata database; main saved history was only upgraded. The shared deterministic generator now lives in backend/indexpilot/demo.py, with the original generation CLI preserved. This removes an import-path assumption exposed by actually running the worker CLI. No frontend/general report implementation has begun.
 
 Final M9 suite: **388 passed** (264 unit, 124 PostgreSQL/API), including 43 new unit cases and 15 new database/API cases. The checked-in measured example contains 54 measurements and 10,800 actual individual transactions. Read/write regressions and all repetition outliers are retained, not converted into a universal improvement claim.
+
+## Milestone 10 local dashboard
+
+The frontend is now implemented. Follow [FRONTEND.md](FRONTEND.md) to start the repository-owned React/Vite dashboard at http://127.0.0.1:5173 alongside FastAPI on port 8000. The API root remains separate from the dashboard. Windows can dot-source scripts/use_node.ps1 for checksum-verified workspace-local Node; no global install/PATH edit is needed. npm ci uses the committed lockfile.
+
+Frontend checks are npm run lint, npm run typecheck, npm test, npm run build and npm run format:check from frontend/. npm run generate:api regenerates the typed contract without connecting to a database. npm run install:browser and npm run test:e2e exercise the real local PG/API services on owned ports 8010/5174. Stop other benchmark workers and leave the queue idle first. Named e2e workload/history records are retained; physical worker cleanup preserves public tables. Traces and local raw artifacts stay ignored. The complete M10 evidence/counts are recorded in PROGRESS.
+
+The GitHub workflow runs backend unit/frontend contract and quality checks. Real PG/browser integration is executed locally in M10; M12 adds the full pinned-container integration CI. No database migration beyond 0009 is introduced by the dashboard overview endpoint.

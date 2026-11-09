@@ -19,6 +19,8 @@ htmlcov/
 *.egg-info/
 
 # Frontend and generated output
+.tools/
+.sites-runtime/
 node_modules/
 dist/
 build/

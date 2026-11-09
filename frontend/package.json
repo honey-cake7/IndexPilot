@@ -1,0 +1,59 @@
+{
+  "name": "indexpilot-dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "npm@11.20.0",
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || ^26.0.0"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "install:browser": "playwright install chromium",
+    "generate:api": "uv run python ../scripts/export_openapi.py && openapi-typescript .openapi.json -o src/api/schema.d.ts && prettier --write src/api/schema.d.ts"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router-dom": "7.18.5",
+    "@tanstack/react-query": "5.107.1",
+    "openapi-fetch": "0.17.0",
+    "recharts": "3.10.1",
+    "lucide-react": "1.70.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.7",
+    "@vitejs/plugin-react": "6.3.0",
+    "typescript": "5.9.3",
+    "tailwindcss": "4.3.5",
+    "@tailwindcss/vite": "4.3.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/node": "26.6.6",
+    "openapi-typescript": "7.13.0",
+    "vitest": "5.1.0",
+    "jsdom": "31.0.0",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8",
+    "@testing-library/jest-dom": "7.0.1",
+    "@playwright/test": "1.65.0",
+    "@axe-core/playwright": "4.14.0",
+    "eslint": "10.14.0",
+    "@eslint/js": "10.0.1",
+    "prettier": "3.9.10",
+    "typescript-eslint": "8.72.1",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "globals": "17.14.0"
+  },
+  "overrides": {
+    "minimatch": "11.0.1"
+  }
+}

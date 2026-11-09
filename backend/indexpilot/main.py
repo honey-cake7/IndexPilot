@@ -22,6 +22,7 @@ from indexpilot.api.candidates import router as candidate_router
 from indexpilot.api.dependencies import get_engine
 from indexpilot.api.evaluations import router as evaluation_router
 from indexpilot.api.optimization import router as optimization_router
+from indexpilot.api.overview import router as overview_router
 from indexpilot.api.plans import router as plan_router
 from indexpilot.api.recommendations import router as recommendation_router
 from indexpilot.api.schema import router as schema_router
@@ -184,6 +185,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(optimization_router)
     app.include_router(recommendation_router)
     app.include_router(benchmark_router)
+    app.include_router(overview_router)
     return app
 
 

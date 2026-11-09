@@ -125,3 +125,15 @@ An explicit foreground/one-shot CLI consumes a bounded durable queue under metad
 ## D031 — Larger statistics capture without discarding history
 
 Accumulated development history made the old workload integration tests correctly see truncated 1,000-entry captures. Keep the application's default and conservative truncation/reset/eviction semantics. Add an administrator-configured 1–5,000 bound and use the full pinned-server bound for controlled tests, without clearing global statistics or weakening interval assertions. A larger full capture does not make earlier truncated snapshots usable.
+
+## D032 - Local dashboard with generated contracts
+
+M10 follows the Sites skill's explicit local-preview path because the existing specification requires a repository-owned Vite dashboard bound to local FastAPI/PostgreSQL. No cloud hosting, registration or credential flow is introduced. React Router resource URLs and TanStack Query provide saved-state navigation without storing SQL/parameters in localStorage. OpenAPI-generated TypeScript and openapi-fetch catch contract mistakes before a request reaches the database. TypeScript 5.9.3 satisfies the generator/linter peer ranges; dependencies and a patched minimatch override are locked. The optional Windows x64 Node helper verifies the official release checksum and changes only process PATH.
+
+## D033 - Saved budgets and measured phase charts
+
+Budget changes explicitly call the existing optimizer and save a new immutable result; edited settings cannot relabel or save the previous selection as new evidence. Full overview counts come from a single metadata SQL statement, while bounded history remains labeled recent/paginated. Recharts cost charts use weighted root planner units; benchmark charts use only stored phase/repetition latency means, with equivalent tables. Unknown values stay unknown. Physical benchmark requests require an unchecked explicit confirmation and a separate worker; queued/partial/cancelled/failed states never imply completion. M10 downloads existing snapshots; durable report resources remain M11.
+
+## D034 - Real browser verification and early CI
+
+Vitest fixtures test UI behavior, while Playwright submits actual workloads, files and typed parameters through FastAPI/PostgreSQL/HypoPG, verifies separate persisted budgets and runs a confirmed three-arm pgbench job. A quiescent local queue is a prerequisite. Named e2e metadata remains reviewable; successful worker jobs clean their owned schema. Ports 8010/5174 belong to tests and are stopped afterward; user port 8000 is preserved. Axe, keyboard and overflow checks cover all nine views at desktop/mobile widths, with screenshots of real data. CI introduces pinned actions for unit/lint/contract/frontend checks now; complete container integration CI stays in M12.
