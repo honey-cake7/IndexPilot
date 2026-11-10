@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     db_host: str = Field(default="127.0.0.1", min_length=1, max_length=253)
     db_port: int = Field(default=55432, ge=1, le=65535)
     secret_dir: Path = Path(".secrets")
+    compose_project: str = Field(default="indexpilot", pattern=r"^[a-z0-9][a-z0-9_-]{0,62}$")
     connect_timeout: int = Field(default=5, ge=1, le=30)
     statement_timeout_ms: int = Field(default=5000, ge=100, le=30000)
     lock_timeout_ms: int = Field(default=1000, ge=100, le=5000)

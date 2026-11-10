@@ -29,7 +29,56 @@ jobs:
         working-directory: frontend
       - run: npm run generate:api && git diff --exit-code -- src/api/schema.d.ts
         working-directory: frontend
-      - run: npm run lint && npm run typecheck && npm test && npm run build
+      - run: npm run lint && npm run typecheck && npm test && npm run build && npm run format:check
         working-directory: frontend
-      # Actual PG/HypoPG/browser integration runs locally in M10. M12 adds the
-      # complete pinned-Compose integration/E2E job; unit mocks do not prove PG.
+  integration-and-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      INDEXPILOT_COMPOSE_PROJECT: indexpilot-ci
+      INDEXPILOT_DB_PORT: '55432'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: '0.11.6'
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: frontend/.node-version
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: uv sync --locked
+      - name: Provision fresh pinned PostgreSQL and HypoPG
+        run: |
+          uv run python scripts/init_local.py
+          docker compose -p indexpilot-ci config --quiet
+          docker compose -p indexpilot-ci up -d --build --wait
+          uv run python scripts/generate_demo.py
+          uv run python scripts/generate_demo.py --target bench
+          uv run python scripts/verify_environment.py
+          uv run alembic upgrade head
+          uv run alembic downgrade 0009
+          uv run alembic upgrade head
+          uv run alembic check
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Run PG and browser checks sequentially
+        run: uv run python scripts/check.py --integration --browser --output artifacts/checks.json
+      - name: Preserve validation evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: validation-evidence
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            artifacts/
+            frontend/playwright-report/
+            frontend/test-results/
+      - name: Remove this runner's disposable cluster
+        if: always()
+        run: docker compose -p indexpilot-ci down --volumes

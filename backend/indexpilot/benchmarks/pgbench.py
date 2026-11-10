@@ -3,6 +3,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from indexpilot.config import Settings
 from indexpilot.errors import DomainError
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -16,7 +17,8 @@ AUTH = (
 class ContainerClient:
     """Fixed local Compose transport. No credential appears in argv, scripts or returned errors."""
 
-    def __init__(self, job_id, check):
+    def __init__(self, job_id, check, *, settings=None):
+        settings = settings or Settings()
         self.job_id, self.check = job_id, check
         self.folder = "/tmp/indexpilot_bench_" + job_id.hex
         self.application = "indexpilot-bench-" + job_id.hex
@@ -24,7 +26,7 @@ class ContainerClient:
             "docker",
             "compose",
             "--project-name",
-            "indexpilot",
+            settings.compose_project,
             "exec",
             "-T",
             "postgres",

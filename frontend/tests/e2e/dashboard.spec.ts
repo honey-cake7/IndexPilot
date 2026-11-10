@@ -5,9 +5,12 @@ import { test, expect, type APIRequestContext } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 const stamp = crypto.randomUUID();
+const screenshots = resolve(
+  process.env.INDEXPILOT_SCREENSHOT_DIR ?? "../artifacts/screenshots",
+);
 let recommendationId = "";
 let optimizationId = "";
 let benchmarkId = "";
@@ -286,10 +289,34 @@ test.describe.serial("real PostgreSQL dashboard", () => {
     await expect(
       page.getByRole("heading", { name: `e2e-measured-${stamp}`, exact: true }),
     ).toBeVisible();
+    mkdirSync(screenshots, { recursive: true });
     await page.screenshot({
-      path: "../docs/screenshots/reports.png",
+      path: join(screenshots, "reports.png"),
       fullPage: true,
     });
+  });
+  test("saved report survives real API process restart", async ({ page }) => {
+    expect(reportId).not.toBe("");
+    const proof = JSON.parse(
+      execFileSync(
+        "uv",
+        ["run", "python", "scripts/verify_restart.py", reportId],
+        { cwd: resolve(".."), timeout: 45000, encoding: "utf8" },
+      ),
+    );
+    expect(proof).toMatchObject({
+      report_id: reportId,
+      api_process_starts: 2,
+      content_unchanged: true,
+    });
+    await page.goto(`/reports?report=${reportId}`);
+    await expect(
+      page.getByRole("heading", { name: `e2e-measured-${stamp}`, exact: true }),
+    ).toBeVisible();
+    writeFileSync(
+      test.info().outputPath("restart-proof.json"),
+      JSON.stringify(proof, null, 2),
+    );
   });
   test("all nine views pass desktop/mobile accessibility and overflow checks", async ({
     page,
@@ -379,9 +406,9 @@ test.describe.serial("real PostgreSQL dashboard", () => {
     await page.getByRole("button", { name: "Open navigation" }).click();
     await page.getByRole("link", { name: "SQL Analyzer", exact: true }).click();
     await expect(page).toHaveURL("/analyzer");
-    mkdirSync(resolve("../docs/screenshots"), { recursive: true });
+    mkdirSync(screenshots, { recursive: true });
     await page.screenshot({
-      path: "../docs/screenshots/analyzer-mobile.png",
+      path: join(screenshots, "analyzer-mobile.png"),
       fullPage: true,
     });
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -392,7 +419,7 @@ test.describe.serial("real PostgreSQL dashboard", () => {
     await expect(page.getByRole("status")).toHaveCount(0);
     await expect(page.locator(".recharts-bar-rectangle").first()).toBeVisible();
     await page.screenshot({
-      path: "../docs/screenshots/dashboard.png",
+      path: join(screenshots, "dashboard.png"),
       fullPage: true,
     });
     if (reportId) {
@@ -404,7 +431,7 @@ test.describe.serial("real PostgreSQL dashboard", () => {
         }),
       ).toBeVisible();
       await page.screenshot({
-        path: "../docs/screenshots/reports.png",
+        path: join(screenshots, "reports.png"),
         fullPage: true,
       });
     }

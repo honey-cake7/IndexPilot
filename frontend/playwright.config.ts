@@ -3,6 +3,7 @@ export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
   workers: 1,
+  globalTimeout: 10 * 60 * 1000,
   retries: 0,
   timeout: 90000,
   expect: { timeout: 15000 },

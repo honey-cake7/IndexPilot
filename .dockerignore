@@ -8,3 +8,10 @@ __pycache__
 artifacts
 benchmark-results
 node_modules
+.tools
+.sites-runtime
+**/node_modules
+**/dist
+**/playwright-report
+**/test-results
+**/__pycache__

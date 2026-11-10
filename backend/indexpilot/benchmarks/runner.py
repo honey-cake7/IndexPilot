@@ -198,7 +198,7 @@ def run_job(engine, settings, job_id, connection, expected):
                     "benchmark_cancelled", "Benchmark cancellation was requested.", 409
                 )
 
-    client = ContainerClient(job_id, check)
+    client = ContainerClient(job_id, check, settings=settings)
     manifest = dict(
         policy="isolated-pgbench-v1",
         application_version=version("indexpilot"),
@@ -530,7 +530,7 @@ def run_next(engine, settings):
                         try:
                             terminate_clients(connection, "indexpilot-bench-" + identifier.hex)
                             dataset.clean(connection, identifier, expected)
-                            ContainerClient(identifier, lambda: None).cleanup()
+                            ContainerClient(identifier, lambda: None, settings=settings).cleanup()
                             cleaned = True
                         finally:
                             with Session(engine) as db, db.begin():
