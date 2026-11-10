@@ -1,0 +1,14 @@
+{
+  "source_commit": "f2863f530ffc086517b10c33186e2387e068fc0a",
+  "run_id": 42890235259,
+  "run_url": "https://github.com/honey-cake7/IndexPilot/actions/runs/42890235259",
+  "integration_job_id": 130089117061,
+  "platform": "GitHub hosted Ubuntu 26.04.1",
+  "provisioning": "Fresh pinned PostgreSQL/HypoPG build and volume; private POSIX host secrets with postgres-owned tmpfs copies",
+  "backend_passed": 425,
+  "frontend_components_passed": 29,
+  "real_browser_scenarios_passed": 6,
+  "unit_and_dashboard_job": "success",
+  "integration_and_browser_job": "success",
+  "earlier_failed_run": 42889329543
+}

@@ -1,0 +1,83 @@
+{
+  "source_commit": "ea0114dd9b90f5fab714748d5c4137621205b5e8",
+  "checkout": "fresh local Git clone; new virtual environment, credentials and database volume",
+  "platform": "Windows / WSL Docker",
+  "python": "3.12.13",
+  "node": "v26.13.0",
+  "database_port": 55434,
+  "compose_project": "indexpilot-m12-mwb3ncpt",
+  "checkout_clean": true,
+  "independent_credentials_verified": true,
+  "development_public_data_and_indexes_unchanged": true,
+  "backend_passed": 425,
+  "frontend_components_passed": 29,
+  "real_browser_scenarios_passed": 6,
+  "restart_proof": {
+    "report_id": "680e19e8-35a8-42bc-b4fd-ae7745b9a091",
+    "api_process_starts": 2,
+    "content_unchanged": true,
+    "sha256": "bfd28a5c299dd73af817e8a42fc99e4f03a7af72f5078886dfb27ea4836d41ef"
+  },
+  "checks": {
+    "integration_requested": true,
+    "browser_requested": true,
+    "checks": [
+      {
+        "check": "python lint",
+        "exit_code": 0,
+        "seconds": 0.11
+      },
+      {
+        "check": "python format",
+        "exit_code": 0,
+        "seconds": 0.09
+      },
+      {
+        "check": "backend tests",
+        "exit_code": 0,
+        "seconds": 112.44
+      },
+      {
+        "check": "database capabilities",
+        "exit_code": 0,
+        "seconds": 0.45
+      },
+      {
+        "check": "migration drift",
+        "exit_code": 0,
+        "seconds": 0.86
+      },
+      {
+        "check": "frontend lint",
+        "exit_code": 0,
+        "seconds": 5.06
+      },
+      {
+        "check": "frontend types",
+        "exit_code": 0,
+        "seconds": 2.67
+      },
+      {
+        "check": "frontend components",
+        "exit_code": 0,
+        "seconds": 5.39
+      },
+      {
+        "check": "frontend build",
+        "exit_code": 0,
+        "seconds": 4.56
+      },
+      {
+        "check": "frontend format",
+        "exit_code": 0,
+        "seconds": 0.73
+      },
+      {
+        "check": "real browser workflow",
+        "exit_code": 0,
+        "seconds": 51.72
+      }
+    ],
+    "all_requested_passed": true
+  }
+}

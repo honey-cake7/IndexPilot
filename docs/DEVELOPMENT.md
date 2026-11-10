@@ -1,5 +1,7 @@
 # Development environment
 
+The setup below applies to the completed local application. Milestone sections retain historical observations; current verification commands/limits are in [VALIDATION.md](VALIDATION.md) and [EVALUATION.md](EVALUATION.md).
+
 ## Requirements
 
 Install Git, uv, and a Linux container engine with Compose v2. `uv sync --locked` obtains Python 3.12 if necessary. The tested host is Windows PowerShell using Docker in WSL Ubuntu; Docker Desktop is not required for this configuration. Linux/macOS Docker setups use the standard `docker compose` commands below.
@@ -183,3 +185,11 @@ The GitHub workflow runs backend unit/frontend contract and quality checks. Real
 Run uv run alembic upgrade head and restart an older backend. Readiness now expects 0010; prior revision notes above are historical. The report page saves permanent versioned snapshots and downloads backend JSON/Markdown. History filters by type, literal title/UUID and local dates. [REPORTS.md](REPORTS.md) documents endpoints, privacy options, snapshot behavior, comparison limits and the actual sanitized sample.
 
 The complete backend run passed 418 tests (286 unit, 132 PG/API); frontend component tests passed 29 and the real browser suite passed five scenarios. Run database and browser suites sequentially because their benchmark queue is shared. Migration reversal/re-upgrade and drift checks passed only on the disposable metadata database at port 55433; main history was only upgraded. Playwright owns/stops 8010/5174, preserving user development servers on 8000/5173. Full container/browser CI remains M12 work.
+
+## M12 cross-platform provisioning and complete checks
+
+INDEXPILOT_COMPOSE_PROJECT defaults to indexpilot and must match the trusted Compose -p project name. A second checkout uses its own .env port/project, credentials, virtual environment and volume. scripts/check.py runs unit/frontend checks by default; --integration --browser opts into the sequential actual PG/browser suites. CI provisions a fresh marked cluster and runs the same checker. scripts/verify_restart.py reads a saved report through two separately owned API processes and verifies unchanged bytes without stopping a development server.
+
+Linux file-backed Compose secrets retain host ownership/mode. Host password files stay 0600: the container's root entrypoint copies them into postgres-owned 0700 tmpfs with 0400 files before the official entrypoint drops privileges. Initialization reads those copies; failed reads stop initialization instead of exporting empty values. The health check requires final TCP startup, not the temporary initialization socket. No password is put into image layers, arguments or logs. Rebuild the image for this startup correction; existing volumes keep their stored passwords and must retain their matching host secret files.
+
+The main development demo/bench public fingerprints/index names were checked before and after isolated validation. Only a new validation cluster/volume was used for migration reversal and full browser writes. See the actual clean-checkout artifact and final CI links in PROGRESS. Tests write screenshots/traces to ignored artifacts by default and CI uploads only explicit test evidence, never the credential directory or database volume.

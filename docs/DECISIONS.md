@@ -145,3 +145,11 @@ M11 stores each new report with a permanent UUID, format version and indexed rec
 ## D036 - Filtered history and conditional comparison
 
 A UNION ALL provides seven saved resource kinds with literal bound search, offset-aware time bounds and deterministic ordering. Count/page share one repeatable-read snapshot; separate page requests can still shift after later inserts. Reports embed only explicitly selected terminal jobs of their recommendation, preserve partial states and require completed/cleanup-verified measurements before claiming a completed comparison. The UI compares captured budgets/costs/sizes and source identity without deriving an improvement across different workloads. Active benchmarks must finish or be cancelled first. The development backend/browser suites run sequentially because they share the local benchmark queue.
+
+## D037 - Isolated verification and real process restart
+
+M12 configures a bounded trusted server-side Compose project name while preserving fixed service/database identities and nonce verification. Separate checkouts can therefore validate against separate ports/volumes rather than accidentally sending pgbench into the development cluster. The cross-platform checker fails fast and records actual executed statuses; PG and browser suites run sequentially. A browser-created report is read byte-for-byte through two newly started/stopped API processes. Default captures are ignored artifacts, keeping a fresh Git checkout clean after testing.
+
+## D038 - Private Linux secrets and final TCP readiness
+
+The first fresh Linux CI run exposed POSIX mode-0600 secret files unreadable by the postgres initializer; exported command substitutions had masked failed reads into empty role passwords. A strict POSIX reproduction confirmed it. The root container entrypoint now copies fixed secret files into postgres-owned private tmpfs, preserving host modes. Initialization uses separate checked assignments, and TCP readiness excludes the temporary initialization socket. A fresh POSIX probe verified startup, authenticated role access and 0700/0400 copy permissions while host files remained 0600. Cached Windows builds were never treated as proof of fresh Linux provisioning.

@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M1–M8 implement provisioning, workloads/plans/candidates, hypothetical evaluation, selection and recommendation snapshots. M9 adds isolated physical pgbench jobs and measured comparisons. The dashboard/general reports remain planned. Ingestion alone never authorizes planning or benchmarking; those paths apply separate safety policies.
+Status: M1–M11 implement provisioning, workloads/plans/candidates, hypothetical evaluation, selection, recommendation snapshots, isolated pgbench measurements, the nine-view dashboard and versioned reports. M12 validates the complete bounded local system and its CI. Ingestion alone never authorizes planning or benchmarking; those paths apply separate safety policies.
 
 ## Boundaries and flow
 

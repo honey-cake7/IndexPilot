@@ -1,6 +1,6 @@
 # Metadata database design
 
-Status: migrations 0001–0008 implement targets, workloads, plans, candidates, evaluations, optimization history and recommendations. M9 migration 0009 adds durable benchmark jobs, approved input snapshots, arm membership, measurements and individual transaction samples. General reports remain planned. Demo business rows never belong in metadata.
+Status: migrations 0001–0008 implement targets, workloads, plans, candidates, evaluations, optimization history and recommendations. Migration 0009 adds benchmark jobs, approved inputs, arm membership, measurements and samples; 0010 adds versioned saved reports. Demo business rows never belong in metadata.
 
 ```mermaid
 erDiagram
@@ -18,7 +18,6 @@ erDiagram
     plan_analysis ||--o{ index_candidate_evidence : supplies
     workload_snapshot ||--o{ query_statistic : contains
     query_pattern ||--o{ query_statistic : measured
-    workload ||--o{ analysis_run : analyzed
     candidate_batch ||--o{ evaluation_run : evaluated
     evaluation_run ||--o{ evaluation_query : freezes
     plan_analysis ||--o{ evaluation_query : supplies
@@ -51,7 +50,7 @@ erDiagram
     benchmark_candidate ||--o{ benchmark_arm_index : assigned
     benchmark_job ||--o{ benchmark_measurement : measures
     benchmark_measurement ||--o{ benchmark_sample : logs
-    analysis_run ||--o{ saved_report : exports
+    recommendation_set ||--o{ saved_report : exports
 ```
 
 Every entity has a primary key (UUID where externally addressed, composite keys for scoped membership) and appropriate foreign keys. Parent records supply creation times for their child evidence. Use timezone-aware timestamps, BIGINT bytes/counters/query IDs, finite nonnegative costs and positive finite frequencies. PostgreSQL query IDs can be signed; do not impose a positive queryid constraint.
@@ -59,12 +58,11 @@ Every entity has a primary key (UUID where externally addressed, composite keys 
 | Entity | Main content and constraints |
 | --- | --- |
 | monitored_database | Unique configured target key; safe host/database/role identity and credential reference; no password or secret DSN. |
-| workload | Database FK, source, name; each analysis uses an immutable revision of queries/frequencies. |
+| workload | Database FK, source and name; captured plans/evaluations freeze the chosen scenarios and frequencies. |
 | query_pattern | Workload FK, source identity and normalized text; manual fingerprint separate from server queryid. Server identity includes database, role, queryid and top-level flag; queryid alone is insufficient. |
-| query_scenario | Pattern FK, representative statement/bindings, frequency share; unresolved parameters explicitly prevent planning. Values are sensitive local data. |
+| query_scenario | Pattern FK, representative statement/bindings and explicit frequency; unresolved parameters prevent planning. Values are sensitive local data. |
 | workload_snapshot | Workload FK, collection time, server start/reset/deallocation metadata, collection outcome and extension version. |
 | query_statistic | Snapshot and pattern FKs with composite uniqueness; raw cumulative calls/time/rows/buffers. Derived deltas retain their predecessor and validity reason, or are recalculated from raw snapshots. |
-| analysis_run | Workload revision, target schema/statistics provenance, configuration, status and algorithm version; settings frozen on completion. |
 | candidate_batch | Target FK, generation limits/version, observation time, truncation and warnings; source plans linked through candidate_batch_source. |
 | index_candidate | Batch FK, canonical signature, structured definition and proposed/rejected decision; unique signature within batch. Generation-time benefit/size remain unknown. |
 | evaluation_run | Batch FK, completed/unavailable/failed status, capabilities, requested sets, context, warnings, error code and cleanup confirmation. |
@@ -85,7 +83,7 @@ Every entity has a primary key (UUID where externally addressed, composite keys 
 | benchmark_arm_index | Composite job/candidate/arm PK; scoped FK to approved job candidate; per_query/indexpilot arms only. |
 | benchmark_measurement | Job FK; unique repetition/arm/phase, measured metrics and immutable conditions/dataset fingerprints. |
 | benchmark_sample | Composite measurement/client/sequence PK; nonnegative integer microsecond latency and script ID. Failed/incomplete logs cannot become successful measurements. |
-| saved_report | Analysis FK, report format/version and immutable rendered artifact or safe managed artifact reference; no arbitrary filesystem path. |
+| saved_report | Recommendation FK, bounded title, capture time, constrained format version and frozen JSONB document; no arbitrary filesystem path. |
 
 Store PostgreSQL plan trees and frozen settings as JSONB because their internal structure varies; relational keys and membership remain normalized. Do not store comma-separated query IDs or selected indexes. Ordered index keys are structured data, not an unordered set.
 
