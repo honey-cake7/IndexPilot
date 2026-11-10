@@ -2,10 +2,11 @@
 set -Eeuo pipefail
 
 # Do not enable shell tracing: these variables contain generated credentials.
-export IP_META_PASSWORD="$(cat /run/secrets/meta_password)"
-export IP_DEMO_PASSWORD="$(cat /run/secrets/demo_password)"
-export IP_ANALYZER_PASSWORD="$(cat /run/secrets/analyzer_password)"
-export IP_BENCH_PASSWORD="$(cat /run/secrets/bench_password)"
+IP_META_PASSWORD="$(cat /run/indexpilot-secrets/meta_password)"
+IP_DEMO_PASSWORD="$(cat /run/indexpilot-secrets/demo_password)"
+IP_ANALYZER_PASSWORD="$(cat /run/indexpilot-secrets/analyzer_password)"
+IP_BENCH_PASSWORD="$(cat /run/indexpilot-secrets/bench_password)"
+export IP_META_PASSWORD IP_DEMO_PASSWORD IP_ANALYZER_PASSWORD IP_BENCH_PASSWORD
 
 psql --username "$POSTGRES_USER" --dbname postgres --set ON_ERROR_STOP=1 <<'SQL'
 \getenv meta_password IP_META_PASSWORD

@@ -13,3 +13,6 @@ RUN apt-get update \
 FROM postgres:18.6-bookworm@sha256:f1ea2a1a4fb7b68d4836be1fdcb8a6466a89b072158bf9d97663600538c294c5
 COPY --from=builder /opt/hypopg/ /
 COPY infra/postgres/init.sh /docker-entrypoint-initdb.d/10-indexpilot.sh
+COPY --chmod=0755 infra/postgres/entrypoint.sh /usr/local/bin/indexpilot-entrypoint.sh
+ENTRYPOINT ["indexpilot-entrypoint.sh"]
+CMD ["postgres"]

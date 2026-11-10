@@ -28,12 +28,14 @@ services:
       - analyzer_password
       - bench_password
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d indexpilot_demo"]
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "indexpilot_demo"]
       interval: 3s
       timeout: 3s
       retries: 30
       start_period: 10s
     shm_size: 256mb
+    tmpfs:
+      - /run/indexpilot-secrets:mode=0700
 secrets:
   admin_password:
     file: .secrets/admin_password
