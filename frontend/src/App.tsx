@@ -41,7 +41,7 @@ const Recommendations = lazy(() =>
   })),
 );
 const Reports = lazy(() =>
-  import("./pages/Recommendations").then((m) => ({ default: m.Reports })),
+  import("./pages/Reports").then((m) => ({ default: m.Reports })),
 );
 const Benchmarks = lazy(() =>
   import("./pages/Benchmarks").then((m) => ({ default: m.Benchmarks })),

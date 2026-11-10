@@ -45,8 +45,8 @@ Restart Vite after changing it. This variable configures its proxy; it is not a 
 | Recommendations | Saved explanations, selected/rejected-empty outcomes, query before/after plans, warnings, links to source optimization and non-executing SQL downloads. |
 | Budget Simulator | Saved candidate batches; budget slider/numeric input; bounded search, regression and heuristic write-penalty settings; real HypoPG rerun creates a new saved optimizer ID. |
 | Benchmark Comparison | Explicit unchecked physical-benchmark confirmation, bounded settings, queue/cancel/status polling, measured read/write phase charts, storage and full conditions. |
-| History | Paginated saved workload, plan, candidate, optimization, recommendation and benchmark records with links back to their evidence. |
-| Reports | Downloads of an existing recommendation snapshot and separately linked benchmark JSON/measurements. M11 adds durable report IDs, versions and richer exports/comparisons. |
+| History | Unified paginated history including reports, filtered by type, literal title/UUID text and local date bounds, with links to original evidence. |
+| Reports | Creates immutable versioned reports with explicit SQL inclusion choices and selected terminal benchmark evidence; downloads backend JSON/Markdown and compares saved decisions. See [REPORTS.md](REPORTS.md). |
 
 The decorative bar illustration in the homepage introduction is not a result chart. Every numerical result comes from the API. A missing cost/size/measurement remains **Unknown** or empty. The recommendation's planner estimate is never relabeled as measured latency. Chart tables provide the same values without depending on hover or color.
 

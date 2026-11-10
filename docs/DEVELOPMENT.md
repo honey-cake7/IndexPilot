@@ -177,3 +177,9 @@ The frontend is now implemented. Follow [FRONTEND.md](FRONTEND.md) to start the 
 Frontend checks are npm run lint, npm run typecheck, npm test, npm run build and npm run format:check from frontend/. npm run generate:api regenerates the typed contract without connecting to a database. npm run install:browser and npm run test:e2e exercise the real local PG/API services on owned ports 8010/5174. Stop other benchmark workers and leave the queue idle first. Named e2e workload/history records are retained; physical worker cleanup preserves public tables. Traces and local raw artifacts stay ignored. The complete M10 evidence/counts are recorded in PROGRESS.
 
 The GitHub workflow runs backend unit/frontend contract and quality checks. Real PG/browser integration is executed locally in M10; M12 adds the full pinned-container integration CI. No database migration beyond 0009 is introduced by the dashboard overview endpoint.
+
+## Milestone 11 reports/history
+
+Run uv run alembic upgrade head and restart an older backend. Readiness now expects 0010; prior revision notes above are historical. The report page saves permanent versioned snapshots and downloads backend JSON/Markdown. History filters by type, literal title/UUID and local dates. [REPORTS.md](REPORTS.md) documents endpoints, privacy options, snapshot behavior, comparison limits and the actual sanitized sample.
+
+The complete backend run passed 418 tests (286 unit, 132 PG/API); frontend component tests passed 29 and the real browser suite passed five scenarios. Run database and browser suites sequentially because their benchmark queue is shared. Migration reversal/re-upgrade and drift checks passed only on the disposable metadata database at port 55433; main history was only upgraded. Playwright owns/stops 8010/5174, preserving user development servers on 8000/5173. Full container/browser CI remains M12 work.

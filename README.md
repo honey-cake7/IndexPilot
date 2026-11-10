@@ -6,7 +6,7 @@ IndexPilot is being built to answer: **which combination of indexes helps this w
 
 ## Current status
 
-Milestones 0–10: verified PostgreSQL environment, saved workloads/plans/candidates, HypoPG evaluation, storage-budget selection, explainable recommendations, isolated physical benchmarking and a nine-view React dashboard. The UI submits real workloads, displays recursive plans, saves new budget runs and charts recorded read/write measurements. [Dashboard setup and tests](docs/FRONTEND.md). A [local measured example](sample/benchmarks/README.md) includes improvements and regressions. Durable versioned reports and final integration CI remain pending. See [progress](docs/PROGRESS.md).
+Milestones 0–11: verified PostgreSQL environment, saved workloads/plans/candidates, HypoPG evaluation, storage-budget selection, explainable recommendations, isolated physical benchmarking and a nine-view React dashboard. Durable versioned reports now freeze saved decisions and selected measurements, export JSON/Markdown, and support filtered history/comparison. [Dashboard setup](docs/FRONTEND.md), [report guide](docs/REPORTS.md) and [actual report export](sample/reports/README.md). A [local measured example](sample/benchmarks/README.md) includes improvements and regressions. Final end-to-end validation and complete integration CI remain M12 work. See [progress](docs/PROGRESS.md).
 
 ![Actual local IndexPilot dashboard](docs/screenshots/dashboard.png)
 
@@ -70,6 +70,7 @@ Ordinary analysis will use EXPLAIN without ANALYZE. Hypothetical planner cost is
 - [Dependency-ordered roadmap and acceptance criteria](docs/ROADMAP.md)
 - [Executed development setup and test commands](docs/DEVELOPMENT.md)
 - [Local dashboard, typed API client and real browser verification](docs/FRONTEND.md)
+- [Versioned reports, privacy policy, exports and filtered history](docs/REPORTS.md)
 - [Workload input, parameters, snapshots and interval semantics](docs/WORKLOADS.md)
 - [Schema inspection, SQL resolution and estimated plans](docs/PLAN_ANALYSIS.md)
 - [B-Tree candidate generation, bounds and duplicate detection](docs/CANDIDATES.md)
@@ -85,6 +86,6 @@ Ordinary analysis will use EXPLAIN without ANALYZE. Hypothetical planner cost is
 
 ## Limitations
 
-The API supports the configured local demo and a narrow SQL/catalog subset. Ordinary planning uses EXPLAIN without ANALYZE; physical execution requires a separate, explicitly confirmed benchmark job in the disposable database. That runner supports only the five sample tables, bounded sizes and the pinned local Compose environment. It creates fresh job schemas and preserves public sample tables/indexes. Greedy selection offers no global-optimum guarantee. Write penalties are heuristics; actual controlled write measurements are separate evidence. Local timings vary, and no universal improvement is claimed. The dashboard provides saved-evidence downloads; durable versioned reports remain pending. Planner costs are not milliseconds.
+The API supports the configured local demo and a narrow SQL/catalog subset. Ordinary planning uses EXPLAIN without ANALYZE; physical execution requires a separate, explicitly confirmed benchmark job in the disposable database. That runner supports only the five sample tables, bounded sizes and the pinned local Compose environment. It creates fresh job schemas and preserves public sample tables/indexes. Greedy selection offers no global-optimum guarantee. Write penalties are heuristics; actual controlled write measurements are separate evidence. Local timings vary, and no universal improvement is claimed. Reports freeze historical evidence and disclose missing measurements and their SQL inclusion policy. Planner costs are not milliseconds.
 
 The project relies on PostgreSQL, HypoPG and pglast rather than an LLM to determine index validity. Technical sources are linked in the relevant design documents. AI-assisted contributions must meet the same review, test and evidence standards as other contributions.

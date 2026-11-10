@@ -39,6 +39,7 @@ from indexpilot.metadata.models import (
     RecommendationQuery,
     RecommendationSet,
     RecommendationSetIndex,
+    SavedReport,
 )
 from indexpilot.metadata.session import metadata_engine
 from indexpilot.sql.models import SQLAnalysis
@@ -101,6 +102,9 @@ def evaluation_api(evaluation_schema):
             )
             jobs = select(BenchmarkJob.id).where(
                 BenchmarkJob.recommendation_id.in_(recommendations)
+            )
+            db.execute(
+                delete(SavedReport).where(SavedReport.recommendation_id.in_(recommendations))
             )
             measurements = select(BenchmarkMeasurement.id).where(
                 BenchmarkMeasurement.job_id.in_(jobs)

@@ -167,11 +167,13 @@ export function Pager({
   count,
   onChange,
   size = 20,
+  total,
 }: {
   offset: number;
   count: number;
   onChange: (n: number) => void;
   size?: number;
+  total?: number;
 }) {
   return (
     <div className="pager">
@@ -187,7 +189,7 @@ export function Pager({
       </button>
       <button
         className="secondary"
-        disabled={count < size}
+        disabled={total === undefined ? count < size : offset + count >= total}
         onClick={() => onChange(offset + size)}
       >
         Next

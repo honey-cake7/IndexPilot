@@ -12,6 +12,8 @@ import { BenchmarkForm } from "../src/pages/Benchmarks";
 import { RecommendationDetail } from "../src/pages/Recommendations";
 import { measurementRows, MeasuredChart } from "../src/components/Charts";
 import { ErrorBox, fmt } from "../src/components/ui";
+import { History } from "../src/pages/History";
+import { ReportDetail, Reports } from "../src/pages/Reports";
 
 afterEach(() => vi.restoreAllMocks());
 function mount(element: ReactNode, path = "/") {
@@ -346,5 +348,150 @@ describe("measured evidence and confirmation", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(retry).toHaveBeenCalledOnce();
+  });
+});
+
+// Report/history fixtures exercise presentation and requests, not database speed.
+const reportFixture = {
+  id: "report-1",
+  title: "Saved report",
+  format_version: "indexpilot-report-v1",
+  created_at: "2026-11-10T00:00:00Z",
+  recommendation_id: "rec-1",
+  optimization_id: "opt-1",
+  batch_id: "batch-1",
+  policy: {
+    parameter_policy: "Bound values omitted",
+    original_sql_included: true,
+    representative_sql_included: false,
+  },
+  summary: {
+    storage_budget_bytes: 0,
+    estimated_size_bytes: 0,
+    estimated_read_improvement_pct: null,
+    final_score: { read_cost: 10 },
+  },
+  settings: { storage_budget_bytes: 0 },
+  provenance: {},
+  indexes: [],
+  candidates: [],
+  search_trials: [],
+  benchmarks: [],
+  missing_evidence: ["No selected benchmark."],
+  warnings: [],
+  queries: [
+    {
+      source_plan_id: "plan-1",
+      frequency: 1,
+      original_sql: "<img src=x onerror=alert(1)>",
+      representative_sql: null,
+      explanation: { baseline_cost: 10, final_cost: 10 },
+      statistics: [],
+    },
+  ],
+} as unknown as Model<"ReportDocument">;
+
+describe("saved reports and filtered history", () => {
+  it("submits explicit report privacy choices and displays the saved report identity", async () => {
+    vi.spyOn(api, "recommendations").mockResolvedValue([]);
+    vi.spyOn(api, "benchmarks").mockResolvedValue([]);
+    vi.spyOn(api, "reports").mockResolvedValue({
+      items: [],
+      total: 0,
+      offset: 0,
+      limit: 20,
+    });
+    const create = vi
+      .spyOn(api, "createReport")
+      .mockResolvedValue(reportFixture);
+    vi.spyOn(api, "report").mockResolvedValue(reportFixture);
+    mount(<Reports />, "/reports?id=rec-1");
+    expect(screen.getByLabelText(/Include original SQL/)).toBeChecked();
+    expect(
+      screen.getByLabelText(/Include representative SQL/),
+    ).not.toBeChecked();
+    await userEvent.clear(screen.getByLabelText("Report title"));
+    await userEvent.type(
+      screen.getByLabelText("Report title"),
+      "A saved decision",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save versioned report" }),
+    );
+    expect(await screen.findByText("report-1", { exact: true })).toBeVisible();
+    expect(create).toHaveBeenCalledWith({
+      recommendation_id: "rec-1",
+      title: "A saved decision",
+      benchmark_ids: [],
+      include_original_sql: true,
+      include_representative_sql: false,
+    });
+    expect(
+      screen.getByRole("link", { name: "Download report Markdown" }),
+    ).toHaveAttribute("href", "/api/v1/reports/report-1/download.md");
+  });
+  it("escapes SQL and report titles in the browser and identifies missing evidence", async () => {
+    const rendered = mount(
+      <ReportDetail
+        report={{ ...reportFixture, title: "<script>evil()</script>" }}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { name: "<script>evil()</script>" }),
+    ).toBeVisible();
+    await userEvent.click(screen.getByText(/Query 1 .*frequency/));
+    expect(screen.getByText("<img src=x onerror=alert(1)>")).toBeVisible();
+    expect(rendered.container.querySelector("script,img")).toBeNull();
+    expect(screen.getByText("No selected benchmark.")).toBeVisible();
+  });
+  it("sends history filters to the backend and resets pagination", async () => {
+    const history = vi
+      .spyOn(api, "history")
+      .mockResolvedValue({ items: [], total: 0, offset: 0, limit: 20 });
+    mount(<History />, "/history?offset=20");
+    await userEvent.selectOptions(
+      screen.getByLabelText("Record type"),
+      "reports",
+    );
+    await userEvent.type(screen.getByLabelText("Search title or UUID"), "a_%");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Apply history filters" }),
+    );
+    await waitFor(() =>
+      expect(history).toHaveBeenLastCalledWith(
+        expect.objectContaining({ kind: "reports", q: "a_%", offset: 0 }),
+      ),
+    );
+    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+  });
+  it("explains reversed date ranges before requesting a new page", async () => {
+    const history = vi
+      .spyOn(api, "history")
+      .mockResolvedValue({ items: [], total: 0, offset: 0, limit: 20 });
+    mount(<History />);
+    const calls = history.mock.calls.length;
+    fireEvent.change(screen.getByLabelText("Saved from (local time)"), {
+      target: { value: "2026-11-10T12:00" },
+    });
+    fireEvent.change(screen.getByLabelText("Saved to (local time)"), {
+      target: { value: "2026-11-09T12:00" },
+    });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Apply history filters" }),
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Saved-from must be earlier",
+    );
+    expect(history.mock.calls.length).toBe(calls);
+  });
+  it("keeps invalid URL dates recoverable through the error and clear-filter controls", async () => {
+    vi.spyOn(api, "history").mockRejectedValue(
+      new ApiError("Invalid date range.", "invalid_request"),
+    );
+    mount(<History />, "/history?from=invalid-date");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Invalid date range",
+    );
+    expect(screen.getByRole("button", { name: "Clear filters" })).toBeVisible();
   });
 });

@@ -25,12 +25,6 @@ import {
 } from "../components/ui";
 
 export function Recommendations() {
-  return <RecommendationWorkspace report={false} />;
-}
-export function Reports() {
-  return <RecommendationWorkspace report />;
-}
-function RecommendationWorkspace({ report }: { report: boolean }) {
   const [params, setParams] = useSearchParams();
   const [offset, setOffset] = useState(0);
   const id = params.get("id") ?? "";
@@ -46,19 +40,9 @@ function RecommendationWorkspace({ report }: { report: boolean }) {
   return (
     <>
       <PageTitle
-        title={report ? "Reports" : "Recommendations"}
-        description={
-          report
-            ? "Download saved analysis evidence and separately linked benchmark measurements."
-            : "Understand the selected index set, query trade-offs and the evidence behind it."
-        }
+        title="Recommendations"
+        description="Understand the selected index set, query trade-offs and the evidence behind it."
       />
-      {report && (
-        <p className="notice">
-          Evidence downloads use saved recommendations. Durable, versioned
-          reports and richer comparison tools are scheduled for Milestone 11.
-        </p>
-      )}
       <div className="explorer-layout">
         <Panel title="Saved recommendations">
           {list.isPending ? (
@@ -77,13 +61,10 @@ function RecommendationWorkspace({ report }: { report: boolean }) {
                     onClick={() => setParams({ id: r.id })}
                   >
                     <strong>
-                      {short(r.id)}{" "}
-                      <span className="muted">
-                        / {r.selected_count} indexes
-                      </span>
+                      {short(r.id)} / {r.selected_count} indexes
                     </strong>
                     <small>
-                      {bytes(r.estimated_size_bytes)} · {date(r.created_at)}
+                      {bytes(r.estimated_size_bytes)} / {date(r.created_at)}
                     </small>
                   </button>
                 ))}
@@ -105,8 +86,6 @@ function RecommendationWorkspace({ report }: { report: boolean }) {
             <Busy />
           ) : rec.isError ? (
             <ErrorBox error={rec.error} />
-          ) : report ? (
-            <ReportDetail key={id} rec={rec.data} />
           ) : (
             <RecommendationDetail key={id} rec={rec.data} />
           )}
@@ -263,104 +242,6 @@ export function RecommendationDetail({
             <Warnings items={deploy.data.warnings} />
           </>
         )}
-      </Panel>
-    </>
-  );
-}
-function ReportDetail({ rec }: { rec: Model<"RecommendationView"> }) {
-  const [offset, setOffset] = useState(0);
-  const jobs = useQuery({
-    queryKey: ["benchmark-links", rec.id, offset],
-    queryFn: () => api.benchmarks(offset, rec.id),
-  });
-  const exportJob = useMutation({
-    mutationFn: async (id: string) => ({
-      job: await api.benchmark(id),
-      measurements: await api.measurements(id),
-    }),
-    onSuccess: (evidence) =>
-      download(`indexpilot-benchmark-${evidence.job.id}.json`, {
-        export_kind: "saved_benchmark_evidence",
-        units: {
-          latency: "ms",
-          throughput: "transactions/second",
-          storage: "bytes",
-        },
-        ...evidence,
-      }),
-  });
-  return (
-    <>
-      <Panel title="Saved analysis evidence">
-        <Tag>RECOMMENDATION SNAPSHOT</Tag>
-        <h3 className="mono">{short(rec.id)}</h3>
-        <p className="muted">
-          Saved {date(rec.created_at)}. Planner estimates include SQL,
-          representative values, selected definitions, query explanations and
-          provenance.
-        </p>
-        <p className="small">
-          Downloads include query text and representative parameters. Share them
-          only with intended recipients.
-        </p>
-        <button
-          className="primary"
-          onClick={() =>
-            download(`indexpilot-analysis-${rec.id}.json`, {
-              export_kind: "saved_recommendation_evidence",
-              report_version: null,
-              evidence_level: "planner_estimate",
-              cost_unit: "planner_cost",
-              missing_evidence: [
-                "Measured runtime is not part of the recommendation snapshot. Download linked benchmark evidence separately.",
-              ],
-              recommendation: rec,
-            })
-          }
-        >
-          <Download size={16} />
-          Download analysis JSON
-        </button>
-        <Json title="Preview saved recommendation" value={rec} />
-      </Panel>
-      <Panel title="Linked physical benchmarks">
-        <ErrorBox error={exportJob.error} />
-        {jobs.isPending ? (
-          <Busy />
-        ) : jobs.isError ? (
-          <ErrorBox error={jobs.error} />
-        ) : !jobs.data.length ? (
-          <Empty title="No benchmark on this page">
-            No measured outcome is inferred from planner costs.
-          </Empty>
-        ) : (
-          <div className="record-list">
-            {jobs.data.map((j) => (
-              <div className="record-row" key={j.id}>
-                <div>
-                  <Go to={`/benchmarks?job=${j.id}`}>{short(j.id)}</Go>
-                  <p className="muted small">
-                    {date(j.created_at)} · {j.status} · cleanup{" "}
-                    {j.cleanup_confirmed ? "verified" : "unconfirmed"}
-                  </p>
-                </div>
-                <button
-                  className="secondary"
-                  disabled={exportJob.isPending}
-                  onClick={() => exportJob.mutate(j.id)}
-                >
-                  <Download size={15} />
-                  JSON
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        <Pager
-          offset={offset}
-          count={jobs.data?.length ?? 0}
-          onChange={setOffset}
-        />
       </Panel>
     </>
   );

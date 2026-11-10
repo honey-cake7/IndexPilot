@@ -21,10 +21,12 @@ from indexpilot.api.body_limit import BodyLimitMiddleware
 from indexpilot.api.candidates import router as candidate_router
 from indexpilot.api.dependencies import get_engine
 from indexpilot.api.evaluations import router as evaluation_router
+from indexpilot.api.history import router as history_router
 from indexpilot.api.optimization import router as optimization_router
 from indexpilot.api.overview import router as overview_router
 from indexpilot.api.plans import router as plan_router
 from indexpilot.api.recommendations import router as recommendation_router
+from indexpilot.api.reports import router as report_router
 from indexpilot.api.schema import router as schema_router
 from indexpilot.api.workloads import router as workload_router
 from indexpilot.config import Settings
@@ -160,7 +162,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def ready(request: Request):
         with get_engine(request).connect() as connection:
             revision = connection.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            if revision != "0009":
+            if revision != "0010":
                 raise LocalConnectionError("metadata_migration_required")
         with target_connection(settings) as connection:
             require_demo_identity(connection)
@@ -186,6 +188,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(recommendation_router)
     app.include_router(benchmark_router)
     app.include_router(overview_router)
+    app.include_router(history_router)
+    app.include_router(report_router)
     return app
 
 

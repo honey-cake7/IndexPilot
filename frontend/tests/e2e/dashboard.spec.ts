@@ -4,13 +4,15 @@
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const stamp = crypto.randomUUID();
 let recommendationId = "";
 let optimizationId = "";
 let benchmarkId = "";
+let reportId = "";
+let initialReportId = "";
 
 async function checked(request: APIRequestContext, path: string) {
   const response = await request.get(path);
@@ -94,10 +96,16 @@ test.describe.serial("real PostgreSQL dashboard", () => {
     await page
       .getByRole("link", { name: "Download evidence", exact: true })
       .click();
+    await page
+      .getByLabel("Report title", { exact: true })
+      .fill(`e2e-report-${stamp}`);
+    await page.getByRole("button", { name: "Save versioned report" }).click();
+    await expect(page).toHaveURL(/report=/);
+    initialReportId = new URL(page.url()).searchParams.get("report")!;
     const jsonDownload = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Download analysis JSON" }).click();
+    await page.getByRole("link", { name: "Download report JSON" }).click();
     expect((await jsonDownload).suggestedFilename()).toBe(
-      `indexpilot-analysis-${recommendationId}.json`,
+      `indexpilot-report-${initialReportId}.json`,
     );
     expect(errors).toEqual([]);
   });
@@ -223,6 +231,66 @@ test.describe.serial("real PostgreSQL dashboard", () => {
       ),
     ).toBeVisible();
   });
+  test("saved measured reports, Markdown and filtered history survive reload", async ({
+    page,
+    request,
+  }) => {
+    await page.goto(`/reports?id=${recommendationId}`);
+    await page
+      .getByLabel("Report title", { exact: true })
+      .fill(`e2e-measured-${stamp}`);
+    await page
+      .getByText("Choose benchmark evidence (0/5 selected)", { exact: true })
+      .click();
+    await page
+      .getByLabel(new RegExp(`Include benchmark ${benchmarkId.slice(0, 8)}`))
+      .check();
+    await page.getByRole("button", { name: "Save versioned report" }).click();
+    await expect(page).toHaveURL(/report=/);
+    reportId = new URL(page.url()).searchParams.get("report")!;
+    const stored = await checked(request, `/api/v1/reports/${reportId}`);
+    expect(stored.benchmarks[0].id).toBe(benchmarkId);
+    expect(stored.benchmarks[0].complete_comparison).toBe(true);
+    expect(stored.benchmarks[0].measurements.length).toBe(18);
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download report Markdown" }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe(
+      `indexpilot-report-${reportId}.md`,
+    );
+    const md = readFileSync((await download.path())!, "utf8");
+    expect(md).toContain("indexpilot-report-v1");
+    expect(md).toContain(benchmarkId);
+    expect(md).toContain("planner_cost");
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: `e2e-measured-${stamp}`, exact: true }),
+    ).toBeVisible();
+    await page
+      .getByLabel("Compare with another report")
+      .selectOption(initialReportId);
+    await expect(
+      page.getByText("These reports refer to the same candidate batch.", {
+        exact: false,
+      }),
+    ).toBeVisible();
+    await page.goto("/history");
+    await page.getByLabel("Record type").selectOption("reports");
+    await page.getByLabel("Search title or UUID").fill(reportId);
+    await page.getByRole("button", { name: "Apply history filters" }).click();
+    await expect(
+      page.getByText("1 matching records", { exact: true }),
+    ).toBeVisible();
+    await page.getByRole("link", { name: "View", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`report=${reportId}`));
+    await expect(
+      page.getByRole("heading", { name: `e2e-measured-${stamp}`, exact: true }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: "../docs/screenshots/reports.png",
+      fullPage: true,
+    });
+  });
   test("all nine views pass desktop/mobile accessibility and overflow checks", async ({
     page,
     request,
@@ -233,6 +301,11 @@ test.describe.serial("real PostgreSQL dashboard", () => {
       expect(recs.length).toBeGreaterThan(0);
       recommendationId = recs[0].id;
       optimizationId = recs[0].optimization_id;
+      const savedReports = await checked(
+        request,
+        `/api/v1/reports?recommendation_id=${recommendationId}&limit=1`,
+      );
+      reportId = savedReports.items[0]?.id ?? "";
       const jobs = await checked(request, "/api/v1/benchmarks?limit=100");
       benchmarkId =
         jobs.find(
@@ -249,7 +322,7 @@ test.describe.serial("real PostgreSQL dashboard", () => {
       `/budget?optimization=${optimizationId}`,
       `/benchmarks?job=${benchmarkId}`,
       "/history",
-      `/reports?id=${recommendationId}`,
+      `/reports?id=${recommendationId}${reportId ? `&report=${reportId}` : ""}`,
     ];
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 1000 });
@@ -257,6 +330,7 @@ test.describe.serial("real PostgreSQL dashboard", () => {
         await page.goto(route);
         await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
         await expect(page.getByRole("status")).toHaveCount(0);
+        await expect(page.getByRole("alert")).toHaveCount(0);
         const results = await new AxeBuilder({ page })
           .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
           .analyze();
@@ -321,5 +395,18 @@ test.describe.serial("real PostgreSQL dashboard", () => {
       path: "../docs/screenshots/dashboard.png",
       fullPage: true,
     });
+    if (reportId) {
+      await page.goto(`/reports?report=${reportId}`);
+      await expect(
+        page.getByRole("heading", {
+          name: "Selected index explanations",
+          exact: true,
+        }),
+      ).toBeVisible();
+      await page.screenshot({
+        path: "../docs/screenshots/reports.png",
+        fullPage: true,
+      });
+    }
   });
 });

@@ -76,6 +76,12 @@ The React/TypeScript/Vite dashboard lives in `frontend/`. A generated OpenAPI co
 
 Budget submission saves a new optimizer result; editing inputs cannot relabel old evidence or save an old selection under a new budget. Planner costs have their own charts/units. Measured charts derive only from stored pgbench phase/repetition metrics and provide accessible tables. Benchmark creation requires explicit physical-operation confirmation; queue acceptance is distinct from worker completion. Reports initially download existing snapshots and separately linked measurements; M11 adds durable report resources. See [FRONTEND.md](FRONTEND.md).
 
+## Saved reports and unified history (M11)
+
+The metadata-only report service builds a versioned, explicit projection of recommendation/optimization/candidate/selected terminal benchmark evidence inside one repeatable-read transaction. Indexed report header columns support listing; JSONB retains the historical artifact. Download reads only that document, so source updates do not rewrite it. SQL/parameter inclusion policy is part of the snapshot. Parsed UUIDs determine filenames; Markdown prose is escaped and SQL uses collision-safe fences. No report operation executes target SQL or starts a worker.
+
+Unified history uses a typed UNION ALL over saved resource identities, with bound literal substring/date/type filters, count and page from one repeatable-read snapshot, and deterministic timestamp/type/UUID ordering. The frontend retains history filters and report IDs in URLs, compares captured values without assuming equal workloads, and surfaces missing/partial benchmark evidence explicitly. [REPORTS.md](REPORTS.md) specifies contracts and limitations.
+
 ## Sources
 
 PostgreSQL describes [machine-readable plans and relative planner costs](https://www.postgresql.org/docs/18/using-explain.html). HypoPG documents [session-private hypothetical indexes and the restriction to non-ANALYZE EXPLAIN](https://hypopg.readthedocs.io/en/rel1_stable/usage.html). These constraints determine the evaluator/session design; they do not establish real runtime gains. See the [roadmap](ROADMAP.md) for verification requirements.

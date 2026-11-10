@@ -606,6 +606,92 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** History */
+    get: operations["history_api_v1_history_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reports": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** History */
+    get: operations["history_api_v1_reports_get"];
+    put?: never;
+    /** Create */
+    post: operations["create_api_v1_reports_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reports/{report_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Report */
+    get: operations["report_api_v1_reports__report_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reports/{report_id}/download.json": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Download Json */
+    get: operations["download_json_api_v1_reports__report_id__download_json_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reports/{report_id}/download.md": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Download Markdown */
+    get: operations["download_markdown_api_v1_reports__report_id__download_md_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1186,6 +1272,46 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
+    };
+    /** HistoryItem */
+    HistoryItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind:
+        | "workloads"
+        | "plans"
+        | "candidates"
+        | "optimizations"
+        | "recommendations"
+        | "benchmarks"
+        | "reports";
+      /** Title */
+      title: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Status */
+      status: string | null;
+    };
+    /** HistoryPage */
+    HistoryPage: {
+      /** Items */
+      items: components["schemas"]["HistoryItem"][];
+      /** Total */
+      total: number;
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
     };
     /** HypoPGCapability */
     HypoPGCapability: {
@@ -2066,6 +2192,307 @@ export interface components {
       proposed_evidence: components["schemas"]["CandidateEvidence"][];
       /** Used In Final Plan */
       used_in_final_plan: boolean;
+    };
+    /** ReportBenchmark */
+    ReportBenchmark: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Status */
+      status: string;
+      /** Cleanup Confirmed */
+      cleanup_confirmed: boolean;
+      /** Complete Comparison */
+      complete_comparison: boolean;
+      /** Created At */
+      created_at: string;
+      /** Finished At */
+      finished_at: string | null;
+      /** Request */
+      request: {
+        [key: string]: unknown;
+      };
+      /** Conditions */
+      conditions: {
+        [key: string]: unknown;
+      };
+      /** Measurements */
+      measurements: components["schemas"]["ReportMeasurement"][];
+      /** Comparisons */
+      comparisons: components["schemas"]["ReportComparison"][];
+      /** Warnings */
+      warnings: string[];
+      /** Error Code */
+      error_code: string | null;
+    };
+    /** ReportCandidate */
+    ReportCandidate: {
+      /**
+       * Candidate Id
+       * Format: uuid
+       */
+      candidate_id: string;
+      /** Schema Name */
+      schema_name: string;
+      /** Table Name */
+      table_name: string;
+      /** Keys */
+      keys: components["schemas"]["CandidateKey"][];
+      /** Generation Status */
+      generation_status: string;
+      /** Selected */
+      selected: boolean;
+      /** Reason */
+      reason: string;
+    };
+    /** ReportComparison */
+    ReportComparison: {
+      /** Phase */
+      phase: string;
+      /** Arm */
+      arm: string;
+      /** Baseline Mean Ms */
+      baseline_mean_ms: number;
+      /** Mean Ms */
+      mean_ms: number;
+      /** Repetitions */
+      repetitions: number;
+      /** Baseline Repetition Stddev Ms */
+      baseline_repetition_stddev_ms: number | null;
+      /** Repetition Stddev Ms */
+      repetition_stddev_ms: number | null;
+      /** Measured Improvement Pct */
+      measured_improvement_pct: number | null;
+      /** Regression */
+      regression: boolean | null;
+    };
+    /** ReportDocument */
+    ReportDocument: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Format Version
+       * @default indexpilot-report-v1
+       * @constant
+       */
+      format_version: "indexpilot-report-v1";
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Title */
+      title: string;
+      /**
+       * Recommendation Id
+       * Format: uuid
+       */
+      recommendation_id: string;
+      /**
+       * Optimization Id
+       * Format: uuid
+       */
+      optimization_id: string;
+      /**
+       * Batch Id
+       * Format: uuid
+       */
+      batch_id: string;
+      policy: components["schemas"]["ReportPolicy"];
+      summary: components["schemas"]["RecommendationSummaryData"];
+      settings: components["schemas"]["OptimizationOptions"];
+      /** Provenance */
+      provenance: {
+        [key: string]: unknown;
+      };
+      /** Queries */
+      queries: components["schemas"]["ReportQuery"][];
+      /** Indexes */
+      indexes: components["schemas"]["ReportIndex"][];
+      /** Candidates */
+      candidates: components["schemas"]["ReportCandidate"][];
+      /** Search Trials */
+      search_trials: components["schemas"]["Trial"][];
+      /** Benchmarks */
+      benchmarks: components["schemas"]["ReportBenchmark"][];
+      /** Missing Evidence */
+      missing_evidence: string[];
+      /** Warnings */
+      warnings: string[];
+      /**
+       * Cost Unit
+       * @default planner_cost
+       * @constant
+       */
+      cost_unit: "planner_cost";
+      /**
+       * Size Unit
+       * @default bytes
+       * @constant
+       */
+      size_unit: "bytes";
+      /**
+       * Latency Unit
+       * @default ms
+       * @constant
+       */
+      latency_unit: "ms";
+      /**
+       * Throughput Unit
+       * @default transactions/second
+       * @constant
+       */
+      throughput_unit: "transactions/second";
+    };
+    /** ReportIndex */
+    ReportIndex: {
+      /**
+       * Candidate Id
+       * Format: uuid
+       */
+      candidate_id: string;
+      /** Schema Name */
+      schema_name: string;
+      /** Table Name */
+      table_name: string;
+      /** Index Name */
+      index_name: string;
+      /** Keys */
+      keys: components["schemas"]["CandidateKey"][];
+      /** Estimated Size Bytes */
+      estimated_size_bytes: number;
+      explanation: components["schemas"]["IndexExplanation"];
+      /** Deployment Sql */
+      deployment_sql: string | null;
+    };
+    /** ReportMeasurement */
+    ReportMeasurement: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Repetition */
+      repetition: number;
+      /** Arm */
+      arm: string;
+      /** Phase */
+      phase: string;
+      metrics: components["schemas"]["ReportMetrics"];
+      /** Conditions */
+      conditions: {
+        [key: string]: unknown;
+      };
+    };
+    /** ReportMetrics */
+    ReportMetrics: {
+      /** Samples */
+      samples: number;
+      /** Mean Ms */
+      mean_ms: number | null;
+      /** Median Ms */
+      median_ms: number | null;
+      /** P95 Ms */
+      p95_ms: number | null;
+      /** Tps */
+      tps: number | null;
+      /** Latency Unit */
+      latency_unit: string;
+      /** Throughput Unit */
+      throughput_unit: string;
+      /** Percentile Method */
+      percentile_method: string;
+      /** Transaction Definition */
+      transaction_definition: string;
+    };
+    /** ReportPage */
+    ReportPage: {
+      /** Items */
+      items: components["schemas"]["ReportSummary"][];
+      /** Total */
+      total: number;
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+    };
+    /** ReportPolicy */
+    ReportPolicy: {
+      /** Original Sql Included */
+      original_sql_included: boolean;
+      /** Representative Sql Included */
+      representative_sql_included: boolean;
+      /** Parameter Policy */
+      parameter_policy: string;
+    };
+    /** ReportQuery */
+    ReportQuery: {
+      /**
+       * Source Plan Id
+       * Format: uuid
+       */
+      source_plan_id: string;
+      /** Frequency */
+      frequency: number;
+      /** Original Sql */
+      original_sql: string | null;
+      /** Representative Sql */
+      representative_sql: string | null;
+      explanation: components["schemas"]["QueryExplanation"];
+      /** Statistics */
+      statistics: components["schemas"]["StatisticsObservation"][];
+    };
+    /** ReportRequest */
+    ReportRequest: {
+      /**
+       * Recommendation Id
+       * Format: uuid
+       */
+      recommendation_id: string;
+      /**
+       * Title
+       * @default Optimization report
+       */
+      title: string;
+      /** Benchmark Ids */
+      benchmark_ids?: string[];
+      /**
+       * Include Original Sql
+       * @default true
+       */
+      include_original_sql: boolean;
+      /**
+       * Include Representative Sql
+       * @default false
+       */
+      include_representative_sql: boolean;
+    };
+    /** ReportSummary */
+    ReportSummary: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Recommendation Id
+       * Format: uuid
+       */
+      recommendation_id: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Title */
+      title: string;
+      /** Format Version */
+      format_version: string;
     };
     /** ResolvedColumn */
     ResolvedColumn: {
@@ -3839,6 +4266,208 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["OverviewStats"];
+        };
+      };
+    };
+  };
+  history_api_v1_history_get: {
+    parameters: {
+      query?: {
+        kind?:
+          | (
+              | "workloads"
+              | "plans"
+              | "candidates"
+              | "optimizations"
+              | "recommendations"
+              | "benchmarks"
+              | "reports"
+            )
+          | null;
+        q?: string;
+        created_from?: string | null;
+        created_to?: string | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HistoryPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  history_api_v1_reports_get: {
+    parameters: {
+      query?: {
+        recommendation_id?: string | null;
+        q?: string;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReportPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_api_v1_reports_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReportRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReportDocument"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  report_api_v1_reports__report_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        report_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReportDocument"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  download_json_api_v1_reports__report_id__download_json_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        report_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  download_markdown_api_v1_reports__report_id__download_md_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        report_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

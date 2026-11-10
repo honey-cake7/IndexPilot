@@ -26,7 +26,12 @@ export function number(value: unknown): number | null {
 async function must<T>(
   result: Promise<{ data?: T; error?: unknown; response: Response }>,
 ): Promise<T> {
-  const { data, error, response } = await result;
+  const { data, error, response } = await result.catch(() => {
+    throw new ApiError(
+      "Cannot reach the API. Start FastAPI and check the local Vite proxy.",
+      "api_unavailable",
+    );
+  });
   if (!response.ok || data === undefined) {
     const detail = object(object(error).error);
     throw new ApiError(
@@ -42,6 +47,23 @@ async function must<T>(
   return data;
 }
 export const api = {
+  history: (
+    query: NonNullable<paths["/api/v1/history"]["get"]["parameters"]["query"]>,
+  ) => must(client.GET("/api/v1/history", { params: { query } })),
+  reports: (offset = 0, q = "", recommendation_id?: string) =>
+    must(
+      client.GET("/api/v1/reports", {
+        params: { query: { offset, limit: 20, q, recommendation_id } },
+      }),
+    ),
+  report: (id: string) =>
+    must(
+      client.GET("/api/v1/reports/{report_id}", {
+        params: { path: { report_id: id } },
+      }),
+    ),
+  createReport: (body: Model<"ReportRequest">) =>
+    must(client.POST("/api/v1/reports", { body })),
   ready: () => must(client.GET("/health/ready")),
   overview: () => must(client.GET("/api/v1/overview")),
   connection: () => must(client.GET("/api/v1/connections/demo")),

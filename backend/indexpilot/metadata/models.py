@@ -543,3 +543,19 @@ class BenchmarkSample(Base):
     sequence: Mapped[int] = mapped_column(Integer, primary_key=True)
     script_id: Mapped[int]
     latency_us: Mapped[int] = mapped_column(BigInteger)
+
+
+class SavedReport(Base):
+    __tablename__ = "saved_report"
+    __table_args__ = (
+        CheckConstraint("format_version = 'indexpilot-report-v1'", name="report_format_version"),
+        CheckConstraint("length(title) BETWEEN 1 AND 120", name="report_title_length"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    recommendation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("recommendation_set.id"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    format_version: Mapped[str] = mapped_column(String(40))
+    document: Mapped[dict] = mapped_column(JSONB)

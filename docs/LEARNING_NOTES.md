@@ -129,3 +129,13 @@ A budget slider changes an input, not history. For example, a 1 MiB optimizer re
 A chart must state its units and measurement population. The measured chart uses only the selected pgbench phase and reports the mean of repetition means, repetition count and range. The update phase is a different experiment from the mixed-read phase. Missing measurements do not become zeros. A single successful run checks the workflow; it does not establish repeatable performance superiority.
 
 Accessibility is testable behavior. Real browser checks found low-contrast labels, scrollable tables lacking keyboard focus, and narrow layouts allowing descendants to widen the page. Correct colors, focusable scroll regions, positioned hidden table captions and grid minimum widths fixed those findings without hiding the data. Native inputs, visible focus, a skip link and a keyboard-operable mobile drawer let users complete the same workflow without hover.
+
+## M11: a report is a historical experiment
+
+A download assembled from current joins can change when its source changes. A saved report instead freezes the relevant fields under one database snapshot and receives a permanent identity and format version. A future 2 MiB optimizer run must not rewrite an older zero-budget report. The report's selected/rejected reasons, captured settings and optional measured jobs explain which decision was actually made.
+
+The same database snapshot matters within report creation: repeatable read keeps the recommendation, source optimizer and benchmark reads consistent while the report is assembled. It does not freeze the monitored target or make later history-page requests share that snapshot. Deterministic tie ordering and bound filters make unchanged history pages predictable; offset pagination can move when new records are inserted.
+
+Privacy requires saying what a field contains. Original SQL may already contain literal values, even when a typed parameter map is omitted. The report therefore has independent original-SQL and bound-representative-SQL choices and saves that policy. No automatic literal redaction is promised. Markdown is a different text format from JSON: prose is escaped, code blocks cannot be closed by SQL backticks, and filenames never use the user's title.
+
+Missing benchmark evidence is not a zero measurement. A cancelled job may have partial data but cannot establish a completed before/after result. The report keeps that state and lists missing evidence. Even two reports from the same candidate batch can have different statistics, settings or runtime conditions; a side-by-side table is not proof of a causal speedup.
